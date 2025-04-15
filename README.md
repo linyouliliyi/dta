@@ -19,8 +19,8 @@
 
 1. 克隆项目：
 ```bash
-git clone https://github.com/yourusername/children-story-creator.git
-cd children-story-creator
+git clone https://github.com/linyouliliyi/dta.git
+cd dta
 ```
 
 2. 安装 Python 依赖：
