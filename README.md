@@ -1,131 +1,105 @@
-# 儿童故事创作器 (Children Story Creator)
+# 儿童故事生成器
 
-这是一个使用 AI 技术自动生成儿童绘本故事的应用程序。它能够根据用户输入的角色描述，自动生成有趣的故事内容，并为每个场景生成配图，最终输出为精美的 PDF 绘本。
+这是一个基于 AI 的儿童故事生成器，可以根据用户输入生成包含角色、场景和图片的完整故事。
 
 ## 功能特点
 
-- 角色设计：根据用户描述自动生成角色特征
-- 故事创作：生成适合儿童阅读的趣味故事
-- 场景配图：为每个故事场景生成配图
-- PDF 生成：自动排版生成精美的 PDF 绘本
+- 智能角色设计：根据用户描述生成独特的角色特征
+- 故事生成：自动创建有趣的故事大纲和场景
+- 图片生成：为每个场景生成对应的图片
+- 教育意义：每个故事都包含积极的教育意义
 
-## 系统要求
+## 技术栈
 
 - Python 3.8+
-- Ollama (用于故事生成)
-- ComfyUI (用于图片生成)
+- Flask (Web 框架)
+- ComfyUI (AI 图片生成)
+- 其他依赖见 requirements.txt
 
-## 安装步骤
+## 安装说明
 
-1. 克隆项目：
+1. 克隆项目到本地：
 ```bash
+<<<<<<< HEAD
+git clone [项目地址]
+cd [项目目录]
+=======
 git clone https://github.com/linyouliliyi/dta.git
 cd dta
+>>>>>>> 62c234f55903773672c0f8f59f534bf45f6e8f86
 ```
 
-2. 安装 Python 依赖：
+2. 创建并激活虚拟环境：
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+```
+
+3. 安装依赖：
 ```bash
 pip install -r requirements.txt
 ```
 
-3. 安装 Ollama：
-   - 访问 [Ollama 官网](https://ollama.ai/) 下载并安装
-   - 启动 Ollama 服务：
-   ```bash
-   ollama serve
-   ```
-   - 下载 llama2 模型：
-   ```bash
-   ollama pull llama2
-   ```
+4. 确保 ComfyUI 服务已启动：
+```bash
+# 默认地址为 http://localhost:8188
+# 确保 ComfyUI 已正确配置并运行
+```
 
-4. 安装 ComfyUI：
-   - 访问 [ComfyUI GitHub](https://github.com/comfyanonymous/ComfyUI) 下载并安装
-   - 启动 ComfyUI 服务（默认端口 8188）
+## 使用说明
+
+1. 启动应用：
+```bash
+python app.py
+```
+
+2. 访问应用：
+- 本地访问：打开浏览器访问 `http://127.0.0.1:5000`
+- 默认只能在本地访问，如需外部访问需要修改配置
+
+3. 使用方法：
+- 在输入框中描述你想要的角色特征
+- 点击生成按钮
+- 等待系统生成完整的故事和图片
+- 查看生成的结果
 
 ## 项目结构
 
 ```
-children-story-creator/
-├── agents/                # AI 代理模块
-│   ├── character_designer.py  # 角色设计器
-│   ├── story_creator.py      # 故事生成器
-│   ├── art_designer.py      # 图片生成器
-│   └── book_maker.py        # PDF 生成器
-├── models/                # 数据模型
-│   ├── character.py       # 角色模型
-│   └── story.py          # 故事模型
-├── utils/                # 工具函数
-├── services/            # 外部服务接口
-├── config.py           # 配置文件
-├── main.py            # 主程序
-└── requirements.txt    # 依赖列表
-```
-
-## 使用方法
-
-1. 确保 Ollama 和 ComfyUI 服务都已启动
-
-2. 运行主程序：
-```bash
-python main.py
-```
-
-3. 输入角色描述，例如：
-```
-我想创建一个喜欢探险的小猫角色，
-它有着蓝色的毛发和大大的眼睛，
-性格活泼开朗，喜欢帮助他人。
-```
-
-4. 程序会自动：
-   - 生成角色特征
-   - 创作故事内容
-   - 为每个场景生成配图
-   - 生成 PDF 绘本
-
-5. 生成的绘本将保存在 `output/books` 目录下
-
-## 配置说明
-
-在 `config.py` 中可以修改以下配置：
-
-```python
-CONFIG = {
-    "ollama": {
-        "api_url": "http://localhost:11434",  # Ollama API 地址
-        "model": "llama2"                     # 使用的模型
-    },
-    "comfyui": {
-        "api_url": "http://localhost:8188"    # ComfyUI API 地址
-    },
-    "output_dir": "output"                    # 输出目录
-}
+.
+├── app.py              # Flask 应用主文件
+├── requirements.txt    # 项目依赖
+├── static/            # 静态文件目录
+│   └── images/        # 生成的图片存储目录
+├── templates/         # HTML 模板
+│   └── index.html    # 主页面模板
+└── agents/           # AI 代理模块
+    ├── art_designer.py    # 图片生成代理
+    ├── character_designer.py  # 角色设计代理
+    └── story_creator.py   # 故事生成代理
 ```
 
 ## 注意事项
 
-1. 确保 Ollama 和 ComfyUI 服务正常运行
-2. 生成图片可能需要较长时间，请耐心等待
-3. 建议使用 GPU 加速图片生成过程
-4. 生成的 PDF 文件会自动保存在 output/books 目录下
+1. 确保 ComfyUI 服务正常运行
+2. 生成图片可能需要一些时间，请耐心等待
+3. 建议使用现代浏览器访问应用
+4. 默认配置仅支持本地访问
 
 ## 常见问题
 
-1. Ollama 服务无法启动
-   - 检查端口 11434 是否被占用
-   - 确保已正确安装 Ollama
-   - 尝试重启 Ollama 服务
-
-2. 图片生成失败
+1. 图片生成失败
    - 检查 ComfyUI 服务是否正常运行
-   - 确认 API 地址配置正确
-   - 检查网络连接
+   - 确认网络连接正常
+   - 查看日志输出获取具体错误信息
 
-3. PDF 生成失败
-   - 确保已安装所有依赖
-   - 检查输出目录权限
-   - 确认图片文件存在且可访问
+2. 应用无法访问
+   - 确认应用是否正常启动
+   - 检查端口 5000 是否被占用
+   - 确保防火墙设置允许访问
 
 ## 贡献指南
 
@@ -133,4 +107,12 @@ CONFIG = {
 
 ## 许可证
 
+<<<<<<< HEAD
+[许可证类型]
+
+## 联系方式
+
+[联系方式] 
+=======
 MIT License 
+>>>>>>> 62c234f55903773672c0f8f59f534bf45f6e8f86
