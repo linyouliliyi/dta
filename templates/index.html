@@ -58,11 +58,19 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">外貌</p>
-                            <p id="characterAppearance" class="font-medium"></p>
+                            <div id="characterAppearance" class="font-medium">
+                                <p class="text-sm">身体特征：<span id="physicalTraits"></span></p>
+                                <p class="text-sm">服装：<span id="clothing"></span></p>
+                                <p class="text-sm">显著特点：<span id="distinctiveFeatures"></span></p>
+                            </div>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">性格</p>
-                            <p id="characterPersonality" class="font-medium"></p>
+                            <div id="characterPersonality" class="font-medium">
+                                <p class="text-sm">性格特点：<span id="personalityTraits"></span></p>
+                                <p class="text-sm">优点：<span id="strengths"></span></p>
+                                <p class="text-sm">缺点：<span id="weaknesses"></span></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -106,8 +114,16 @@
                     // 更新角色信息
                     document.getElementById('characterName').textContent = data.character.name;
                     document.getElementById('characterAge').textContent = data.character.age;
-                    document.getElementById('characterAppearance').textContent = data.character.appearance;
-                    document.getElementById('characterPersonality').textContent = data.character.personality;
+                    
+                    // 更新外貌信息
+                    document.getElementById('physicalTraits').textContent = data.character.appearance.physical_traits.join('、');
+                    document.getElementById('clothing').textContent = data.character.appearance.clothing.join('、');
+                    document.getElementById('distinctiveFeatures').textContent = data.character.appearance.distinctive_features.join('、');
+                    
+                    // 更新性格信息
+                    document.getElementById('personalityTraits').textContent = data.character.personality.traits.join('、');
+                    document.getElementById('strengths').textContent = data.character.personality.strengths.join('、');
+                    document.getElementById('weaknesses').textContent = data.character.personality.weaknesses.join('、');
                     
                     // 更新故事标题
                     document.getElementById('storyTitle').textContent = data.story.title;

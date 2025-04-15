@@ -1,7 +1,7 @@
 CONFIG = {
-    "ollama": {
-        "api_url": "http://localhost:11434",
-        "model": "llama2"
+    "lm_studio": {
+        "api_url": "http://localhost:1234",
+        "model": "default"
     },
     "comfyui": {
         "api_url": "http://localhost:8188"
