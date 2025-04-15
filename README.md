@@ -105,14 +105,4 @@ python app.py
 
 欢迎提交 Issue 和 Pull Request 来帮助改进项目。
 
-## 许可证
 
-<<<<<<< HEAD
-[许可证类型]
-
-## 联系方式
-
-[联系方式] 
-=======
-MIT License 
->>>>>>> 62c234f55903773672c0f8f59f534bf45f6e8f86
