@@ -43,6 +43,7 @@ class BookMaker:
                            f"场景 {i+1}")
                 
                 # 添加图片
+                y = self.page_size[1] - self.margin - self.line_height * 2  # 初始化y坐标
                 if os.path.exists(image_path):
                     img = Image.open(image_path)
                     # 调整图片大小以适应页面

@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 from agents.character_designer import CharacterDesigner
 from agents.story_creator import StoryCreator
 from agents.art_designer import ArtDesigner
+from agents.book_maker import BookMaker
 import os
 import traceback
 import logging
+import json
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
@@ -20,49 +22,64 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 character_designer = CharacterDesigner()
 story_creator = StoryCreator()
 art_designer = ArtDesigner("http://localhost:8188")
+book_maker = BookMaker()
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/generate', methods=['POST'])
-def generate_story():
+def generate_story_stream(user_input):
     try:
-        # 获取用户输入
-        user_input = request.json.get('description', '')
-        logger.debug(f"收到用户输入: {user_input}")
-        
-        # 生成角色
-        logger.debug("开始生成角色...")
+        # Generate character
+        logger.debug("Starting character generation...")
+        yield json.dumps({"status": "generating_character"}) + "\n"
         character = character_designer.create_character(user_input)
         if not character:
-            logger.error("角色生成失败")
-            return jsonify({'error': '角色生成失败'}), 500
-        logger.debug(f"角色生成成功: {character}")
+            logger.error("Character generation failed")
+            yield json.dumps({"error": "Character generation failed"}) + "\n"
+            return
+        logger.debug(f"Character generated successfully: {character}")
+        yield json.dumps({"status": "character_completed"}) + "\n"
         
-        # 生成故事
-        logger.debug("开始生成故事...")
+        # Generate story
+        logger.debug("Starting story generation...")
+        yield json.dumps({"status": "generating_story"}) + "\n"
         story = story_creator.create_story(character)
         if not story:
-            logger.error("故事生成失败")
-            return jsonify({'error': '故事生成失败'}), 500
-        logger.debug(f"故事生成成功: {story}")
+            logger.error("Story generation failed")
+            yield json.dumps({"error": "Story generation failed"}) + "\n"
+            return
+        logger.debug(f"Story generated successfully: {story}")
+        yield json.dumps({"status": "story_completed"}) + "\n"
         
-        # 生成图片
-        logger.debug("开始生成图片...")
+        # Generate images
+        logger.debug("Starting image generation...")
         scene_images = []
-        for scene in story.scenes:
-            logger.debug(f"为场景生成图片: {scene.title}")
+        for i, scene in enumerate(story.scenes):
+            yield json.dumps({"status": "generating_image", "scene": i+1, "total": len(story.scenes)}) + "\n"
+            logger.debug(f"Generating image for scene: {scene.title}")
             image_path = art_designer.generate_scene_image(scene, character)
             if not image_path:
-                logger.error(f"图片生成失败: {scene.title}")
-                return jsonify({'error': '图片生成失败'}), 500
+                logger.error(f"Image generation failed for scene: {scene.title}")
+                yield json.dumps({"error": f"Image generation failed for scene: {scene.title}"}) + "\n"
+                return
             scene_images.append(image_path)
+        yield json.dumps({"status": "images_completed"}) + "\n"
+        
+        # Generate storybook
+        logger.debug("Starting storybook generation...")
+        book_path = book_maker.create_book(story, scene_images)
+        if not book_path:
+            logger.error("Storybook generation failed")
+            yield json.dumps({"error": "Storybook generation failed"}) + "\n"
+            return
+        logger.debug(f"Storybook generated successfully: {book_path}")
         
         # 返回结果
         logger.debug("准备返回结果...")
-        return jsonify({
-            'character': {
+        yield json.dumps({
+            "status": "completed",
+            "character": {
                 'name': character.name,
                 'age': character.age,
                 'appearance': character.appearance,
@@ -77,13 +94,20 @@ def generate_story():
                     'image_path': image_path
                 } for scene, image_path in zip(story.scenes, scene_images)],
                 'moral': story.moral
-            }
-        })
+            },
+            'book_path': book_path
+        }) + "\n"
         
     except Exception as e:
         logger.error(f"发生错误: {str(e)}")
         logger.error(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        yield json.dumps({"error": str(e)}) + "\n"
+
+@app.route('/generate', methods=['POST'])
+def generate_story():
+    user_input = request.json.get('description', '')
+    logger.debug(f"收到用户输入: {user_input}")
+    return Response(generate_story_stream(user_input), mimetype='text/event-stream')
 
 if __name__ == '__main__':
     app.run(debug=True) 

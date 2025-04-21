@@ -12,52 +12,58 @@ class StoryCreator:
     def create_story(self, character: Character) -> Optional[Story]:
         try:
             prompt = f"""
-            为以下角色创作一个有趣的儿童故事：
+            Create an interesting children's story for the following character:
             
-            角色名字：{character.name}
-            年龄：{character.age}
-            性格：{character.personality}
-            背景：{character.background}
+            Character information:
+            - Name: {character.name}
+            - Age: {character.age}
+            - Appearance: {', '.join(character.appearance['physical_traits'])}
+            - Clothing: {', '.join(character.appearance['clothing'])}
+            - Features: {', '.join(character.appearance['distinctive_features'])}
+            - Personality: {', '.join(character.personality['traits'])}
+            - Background: {character.background}
             
-            请以JSON格式返回故事内容，格式如下：
+            Please return the story content in JSON format as follows:
             {{
-                "title": "故事标题",
-                "theme": "故事主题",
-                "moral": "故事的教育意义",
+                "title": "Story title",
+                "theme": "Story theme",
+                "moral": "Educational value of the story",
                 "target_age_range": [3, 8],
                 "scenes": [
                     {{
-                        "title": "场景1的标题",
-                        "description": "场景1的详细描述",
-                        "image_prompt": "场景1的图像生成提示词"
+                        "title": "Scene 1 title",
+                        "description": "Detailed description of scene 1",
+                        "image_prompt": "Image generation prompt for scene 1, must include character features"
                     }},
                     {{
-                        "title": "场景2的标题",
-                        "description": "场景2的详细描述",
-                        "image_prompt": "场景2的图像生成提示词"
+                        "title": "Scene 2 title",
+                        "description": "Detailed description of scene 2",
+                        "image_prompt": "Image generation prompt for scene 2, must include character features"
                     }},
                     {{
-                        "title": "场景3的标题",
-                        "description": "场景3的详细描述",
-                        "image_prompt": "场景3的图像生成提示词"
+                        "title": "Scene 3 title",
+                        "description": "Detailed description of scene 3",
+                        "image_prompt": "Image generation prompt for scene 3, must include character features"
                     }}
                 ]
             }}
             
-            故事要求：
-            1. 适合儿童阅读
-            2. 包含教育意义
-            3. 分为3-5个场景
-            4. 每个场景都要有具体的描述
-            5. 请严格按照上述JSON格式返回数据
-            6. image_prompt 应该是英文的，适合用于图像生成的提示词
+            Story requirements:
+            1. Suitable for children
+            2. Contains educational value
+            3. Divided into 3-5 scenes
+            4. Each scene must have detailed descriptions
+            5. Please strictly follow the JSON format above
+            6. image_prompt must be in English and suitable for image generation
+            7. Each scene's image_prompt must include character's appearance, clothing and features
+            8. Ensure character descriptions in the story match the input character information exactly
             """
             
             response = requests.post(
                 self.api_url,
                 json={
                     "messages": [
-                        {"role": "system", "content": "你是一个专业的儿童故事作家，请严格按照JSON格式返回数据"},
+                        {"role": "system", "content": "You are a professional children's story writer. Please return data strictly in JSON format and in English only."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,

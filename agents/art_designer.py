@@ -78,17 +78,11 @@ class ArtDesigner:
                 return None
             
             # Build character feature description
-            character_description = f"""
-            Character features:
-            - Physical traits: {', '.join(character.appearance['physical_traits'])}
-            - Clothing: {', '.join(character.appearance['clothing'])}
-            - Distinctive features: {', '.join(character.appearance['distinctive_features'])}
-            """
+            character_description = f"Character features: {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}"
             
             # Build complete scene prompt including character features
-            full_prompt = f"{scene.image_prompt}\n\n{character_description}"
-            print(f"Generating scene image, scene title: {scene.title}")
-            print(f"Prompt: {full_prompt}")
+            full_prompt = f"{scene.image_prompt}, {character_description}"
+            print(f"DEBUG: ComfyUI prompt for scene '{scene.title}': {full_prompt}")
             
             # Build ComfyUI workflow
             workflow = {
