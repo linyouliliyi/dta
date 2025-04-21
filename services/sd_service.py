@@ -25,22 +25,107 @@ class SDService:
                       steps: int = 20) -> Optional[str]:
         """生成图像"""
         try:
-            # 构建基本的ComfyUI工作流
+            # 构建ComfyUI工作流
             workflow = {
-                "3": {
-                    "inputs": {
-                        "prompt": prompt,
-                        "negative_prompt": negative_prompt,
-                        "width": width,
-                        "height": height,
-                        "steps": steps
+                "prompt": {
+                    "1": {
+                        "inputs": {
+                            "unet_name": "flux1-schnell.sft",
+                            "weight_dtype": "fp8_e5m2"
+                        },
+                        "class_type": "UNETLoader",
+                        "_meta": {"title": "Load Diffusion Model"}
                     },
-                    "class_type": "KSampler",
-                    "class_defaults": {
-                        "seed": -1,
-                        "cfg": 7,
-                        "sampler_name": "euler_ancestral",
-                        "scheduler": "normal"
+                    "2": {
+                        "inputs": {
+                            "clip_name1": "t5xxl_fp16.safetensors",
+                            "clip_name2": "clip_l.safetensors",
+                            "type": "flux"
+                        },
+                        "class_type": "DualCLIPLoader",
+                        "_meta": {"title": "DualCLIPLoader"}
+                    },
+                    "3": {
+                        "inputs": {
+                            "vae_name": "ae.sft"
+                        },
+                        "class_type": "VAELoader",
+                        "_meta": {"title": "Load VAE"}
+                    },
+                    "4": {
+                        "inputs": {
+                            "seed": 501348891644945,
+                            "steps": 15,
+                            "cfg": 1,
+                            "sampler_name": "euler",
+                            "scheduler": "simple",
+                            "denoise": 1,
+                            "model": ["54", 0],
+                            "positive": ["58", 0],
+                            "negative": ["46", 0],
+                            "latent_image": ["42", 0]
+                        },
+                        "class_type": "KSampler",
+                        "_meta": {"title": "KSampler"}
+                    },
+                    "16": {
+                        "inputs": {
+                            "samples": ["4", 0],
+                            "vae": ["3", 0]
+                        },
+                        "class_type": "VAEDecode",
+                        "_meta": {"title": "VAE Decode"}
+                    },
+                    "37": {
+                        "inputs": {
+                            "images": ["16", 0]
+                        },
+                        "class_type": "PreviewImage",
+                        "_meta": {"title": "Preview Image"}
+                    },
+                    "42": {
+                        "inputs": {
+                            "width": width,
+                            "height": height,
+                            "batch_size": 1
+                        },
+                        "class_type": "EmptyLatentImage",
+                        "_meta": {"title": "Empty Latent Image"}
+                    },
+                    "46": {
+                        "inputs": {
+                            "text": "low quality",
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "53": {
+                        "inputs": {
+                            "text": prompt,
+                            "clip": ["54", 1]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "54": {
+                        "inputs": {
+                            "lora_name": "儿童动物插画故事绘本_V2.0.safetensors",
+                            "strength_model": 0.8,
+                            "strength_clip": 1,
+                            "model": ["1", 0],
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "LoraLoader",
+                        "_meta": {"title": "Load LoRA"}
+                    },
+                    "58": {
+                        "inputs": {
+                            "guidance": 3.5,
+                            "conditioning": ["53", 0]
+                        },
+                        "class_type": "FluxGuidance",
+                        "_meta": {"title": "FluxGuidance"}
                     }
                 }
             }

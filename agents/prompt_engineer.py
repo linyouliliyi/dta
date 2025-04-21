@@ -28,14 +28,15 @@ class PromptEngineer:
                 "quality": "(high quality:1.2), (detailed:1.1), (sharp focus:1.2)",
                 "lighting": "(soft lighting:1.1), (ambient light:0.8), (warm colors:1.0)",
                 "composition": "(rule of thirds:1.1), (centered composition:0.9)",
-                "mood": "(cheerful:1.2), (whimsical:1.1), (playful:1.0)"
+                "mood": "(cheerful:1.2), (whimsical:1.1), (playful:1.0)",
+                "language": "(english text only:1.3), (no chinese characters:1.3), (no asian text:1.3)"
             }
             
             # Combine all elements into a single, compact prompt
-            final_positive_prompt = f"{base_prompt}, {style_controllers['art_style']}, {style_controllers['quality']}, {style_controllers['lighting']}, {style_controllers['composition']}, {style_controllers['mood']}"
+            final_positive_prompt = f"{base_prompt}, {style_controllers['art_style']}, {style_controllers['quality']}, {style_controllers['lighting']}, {style_controllers['composition']}, {style_controllers['mood']}, {style_controllers['language']}"
 
             # Create a compact negative prompt
-            negative_prompt = "deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, ugly, disgusting, blurry, fuzzy, out of focus, bad art, watermark, signature, text"
+            negative_prompt = "deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, ugly, disgusting, blurry, fuzzy, out of focus, bad art, watermark, signature, text, chinese characters, asian text, non-english text"
 
             return {
                 "positive_prompt": final_positive_prompt.replace('\n', ' ').replace('  ', ' ').strip(),

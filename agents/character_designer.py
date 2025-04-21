@@ -12,28 +12,30 @@ class CharacterDesigner:
         try:
             # 使用 LM Studio 生成角色特征
             prompt = f"""
-            基于以下用户输入，创建一个儿童故事角色：
+            Create a children's story character based on the following user input:
             
             {user_input}
             
-            请以JSON格式返回角色信息，格式如下：
+            Please return the character information in JSON format as follows:
             {{
-                "name": "角色名称",
-                "age": 年龄,
+                "name": "Character name",
+                "age": age,
                 "appearance": {{
-                    "physical_traits": ["特征1", "特征2"],
-                    "clothing": ["服装1", "服装2"],
-                    "distinctive_features": ["特点1", "特点2"]
+                    "physical_traits": ["trait1", "trait2"],
+                    "clothing": ["clothing1", "clothing2"],
+                    "distinctive_features": ["feature1", "feature2"]
                 }},
                 "personality": {{
-                    "traits": ["性格特点1", "性格特点2"],
-                    "strengths": ["优点1", "优点2"],
-                    "weaknesses": ["缺点1", "缺点2"]
+                    "traits": ["trait1", "trait2"],
+                    "strengths": ["strength1", "strength2"],
+                    "weaknesses": ["weakness1", "weakness2"]
                 }},
-                "background": "背景故事",
-                "likes": ["喜欢的东西1", "喜欢的东西2"],
-                "dislikes": ["不喜欢的东西1", "不喜欢的东西2"]
+                "background": "background story",
+                "likes": ["like1", "like2"],
+                "dislikes": ["dislike1", "dislike2"]
             }}
+            
+            Important: All text must be in English only. Do not use any non-English characters or text.
             """
             
             # 检查 LM Studio 服务是否可用
@@ -51,7 +53,7 @@ class CharacterDesigner:
                 self.api_url,
                 json={
                     "messages": [
-                        {"role": "system", "content": "你是一个专业的儿童故事角色设计师，请严格按照JSON格式返回数据"},
+                        {"role": "system", "content": "You are a professional children's story character designer. Return data in JSON format only, using English text exclusively. Do not use any non-English characters or text."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,

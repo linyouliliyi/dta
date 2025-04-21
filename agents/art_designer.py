@@ -35,9 +35,108 @@ class ArtDesigner:
                 return None
             
             # Call ComfyUI API
-            # This needs to be adjusted according to your ComfyUI configuration
             workflow = {
-                # ComfyUI workflow configuration
+                "prompt": {
+                    "1": {
+                        "inputs": {
+                            "unet_name": "flux1-schnell.sft",
+                            "weight_dtype": "fp8_e5m2"
+                        },
+                        "class_type": "UNETLoader",
+                        "_meta": {"title": "Load Diffusion Model"}
+                    },
+                    "2": {
+                        "inputs": {
+                            "clip_name1": "t5xxl_fp16.safetensors",
+                            "clip_name2": "clip_l.safetensors",
+                            "type": "flux"
+                        },
+                        "class_type": "DualCLIPLoader",
+                        "_meta": {"title": "DualCLIPLoader"}
+                    },
+                    "3": {
+                        "inputs": {
+                            "vae_name": "ae.sft"
+                        },
+                        "class_type": "VAELoader",
+                        "_meta": {"title": "Load VAE"}
+                    },
+                    "4": {
+                        "inputs": {
+                            "seed": 501348891644945,
+                            "steps": 15,
+                            "cfg": 1,
+                            "sampler_name": "euler",
+                            "scheduler": "simple",
+                            "denoise": 1,
+                            "model": ["54", 0],
+                            "positive": ["58", 0],
+                            "negative": ["46", 0],
+                            "latent_image": ["42", 0]
+                        },
+                        "class_type": "KSampler",
+                        "_meta": {"title": "KSampler"}
+                    },
+                    "16": {
+                        "inputs": {
+                            "samples": ["4", 0],
+                            "vae": ["3", 0]
+                        },
+                        "class_type": "VAEDecode",
+                        "_meta": {"title": "VAE Decode"}
+                    },
+                    "37": {
+                        "inputs": {
+                            "images": ["16", 0]
+                        },
+                        "class_type": "PreviewImage",
+                        "_meta": {"title": "Preview Image"}
+                    },
+                    "42": {
+                        "inputs": {
+                            "width": 904,
+                            "height": 600,
+                            "batch_size": 1
+                        },
+                        "class_type": "EmptyLatentImage",
+                        "_meta": {"title": "Empty Latent Image"}
+                    },
+                    "46": {
+                        "inputs": {
+                            "text": "bad hands, text, watermark, low quality, blurry, malformed, abnormal",
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "53": {
+                        "inputs": {
+                            "text": description,
+                            "clip": ["54", 1]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "54": {
+                        "inputs": {
+                            "lora_name": "儿童动物插画故事绘本_V2.0.safetensors",
+                            "strength_model": 0.8,
+                            "strength_clip": 1,
+                            "model": ["1", 0],
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "LoraLoader",
+                        "_meta": {"title": "Load LoRA"}
+                    },
+                    "58": {
+                        "inputs": {
+                            "guidance": 3.5,
+                            "conditioning": ["53", 0]
+                        },
+                        "class_type": "FluxGuidance",
+                        "_meta": {"title": "FluxGuidance"}
+                    }
+                }
             }
             
             response = requests.post(f"{self.api_url}/queue", json=workflow)
@@ -78,105 +177,120 @@ class ArtDesigner:
                 return None
             
             # Build character feature description
-            character_description = f"Character features: {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}"
+            character_description = f"{', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}"
             
             # Build complete scene prompt including character features
-            full_prompt = f"{scene.image_prompt}, {character_description}"
-            print(f"DEBUG: ComfyUI prompt for scene '{scene.title}': {full_prompt}")
+            full_prompt = f"{scene.image_prompt}, {character_description}, consistent character design, high quality, detailed, clear"
+            
+            # Print detailed prompt information
+            print("\n=== Scene Generation Details ===")
+            print(f"Scene Title: {scene.title}")
+            print(f"Scene Description: {scene.image_prompt}")
+            print(f"Character Features: {character_description}")
+            print(f"Full Prompt: {full_prompt}")
+            print("=============================\n")
             
             # Build ComfyUI workflow
             workflow = {
                 "prompt": {
                     "1": {
                         "inputs": {
-                            "ckpt_name": "sd_xl_base_1.0.safetensors"
+                            "unet_name": "flux1-schnell.sft",
+                            "weight_dtype": "fp8_e5m2"
                         },
-                        "class_type": "CheckpointLoaderSimple",
-                        "_meta": {
-                            "title": "Load Checkpoint"
-                        }
+                        "class_type": "UNETLoader",
+                        "_meta": {"title": "Load Diffusion Model"}
                     },
                     "2": {
                         "inputs": {
-                            "width": 768,
-                            "height": 768,
-                            "batch_size": 1
+                            "clip_name1": "t5xxl_fp16.safetensors",
+                            "clip_name2": "clip_l.safetensors",
+                            "type": "flux"
                         },
-                        "class_type": "EmptyLatentImage",
-                        "_meta": {
-                            "title": "Empty Latent Image"
-                        }
+                        "class_type": "DualCLIPLoader",
+                        "_meta": {"title": "DualCLIPLoader"}
                     },
                     "3": {
                         "inputs": {
-                            "lora_name": "COOLKIDS_MERGE_V2.5.safetensors",
-                            "strength_model": 0.75,
-                            "strength_clip": 1,
-                            "model": ["1", 0],
-                            "clip": ["1", 1]
+                            "vae_name": "ae.sft"
                         },
-                        "class_type": "LoraLoader",
-                        "_meta": {
-                            "title": "Load LoRA"
-                        }
+                        "class_type": "VAELoader",
+                        "_meta": {"title": "Load VAE"}
                     },
                     "4": {
                         "inputs": {
-                            "text": full_prompt,
-                            "clip": ["3", 1]
-                        },
-                        "class_type": "CLIPTextEncode",
-                        "_meta": {
-                            "title": "CLIP Text Encode (Prompt)"
-                        }
-                    },
-                    "5": {
-                        "inputs": {
-                            "text": "(worst quality, low quality:1.4), (bad anatomy), text, error, missing fingers, extra digit, fewer digits, cropped, jpeg artifacts, signature, watermark, username, blurry, deformed face",
-                            "clip": ["3", 1]
-                        },
-                        "class_type": "CLIPTextEncode",
-                        "_meta": {
-                            "title": "CLIP Text Encode (Prompt)"
-                        }
-                    },
-                    "6": {
-                        "inputs": {
-                            "seed": 530938972832347,
-                            "steps": 30,
-                            "cfg": 7,
-                            "sampler_name": "dpmpp_2m",
-                            "scheduler": "karras",
+                            "seed": 501348891644945,
+                            "steps": 15,
+                            "cfg": 1,
+                            "sampler_name": "euler",
+                            "scheduler": "simple",
                             "denoise": 1,
-                            "model": ["3", 0],
-                            "positive": ["4", 0],
-                            "negative": ["5", 0],
-                            "latent_image": ["2", 0]
+                            "model": ["54", 0],
+                            "positive": ["58", 0],
+                            "negative": ["46", 0],
+                            "latent_image": ["42", 0]
                         },
                         "class_type": "KSampler",
-                        "_meta": {
-                            "title": "KSampler"
-                        }
+                        "_meta": {"title": "KSampler"}
                     },
-                    "7": {
+                    "16": {
                         "inputs": {
-                            "samples": ["6", 0],
-                            "vae": ["1", 2]
+                            "samples": ["4", 0],
+                            "vae": ["3", 0]
                         },
                         "class_type": "VAEDecode",
-                        "_meta": {
-                            "title": "VAE Decode"
-                        }
+                        "_meta": {"title": "VAE Decode"}
                     },
-                    "8": {
+                    "37": {
                         "inputs": {
-                            "filename_prefix": "scene_",
-                            "images": ["7", 0]
+                            "images": ["16", 0]
                         },
-                        "class_type": "SaveImage",
-                        "_meta": {
-                            "title": "Save Image"
-                        }
+                        "class_type": "PreviewImage",
+                        "_meta": {"title": "Preview Image"}
+                    },
+                    "42": {
+                        "inputs": {
+                            "width": 904,
+                            "height": 600,
+                            "batch_size": 1
+                        },
+                        "class_type": "EmptyLatentImage",
+                        "_meta": {"title": "Empty Latent Image"}
+                    },
+                    "46": {
+                        "inputs": {
+                            "text": "low quality",
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "53": {
+                        "inputs": {
+                            "text": full_prompt,
+                            "clip": ["54", 1]
+                        },
+                        "class_type": "CLIPTextEncode",
+                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
+                    },
+                    "54": {
+                        "inputs": {
+                            "lora_name": "儿童动物插画故事绘本_V2.0.safetensors",
+                            "strength_model": 0.8,
+                            "strength_clip": 1,
+                            "model": ["1", 0],
+                            "clip": ["2", 0]
+                        },
+                        "class_type": "LoraLoader",
+                        "_meta": {"title": "Load LoRA"}
+                    },
+                    "58": {
+                        "inputs": {
+                            "guidance": 3.5,
+                            "conditioning": ["53", 0]
+                        },
+                        "class_type": "FluxGuidance",
+                        "_meta": {"title": "FluxGuidance"}
                     }
                 }
             }
@@ -194,40 +308,53 @@ class ArtDesigner:
             print(f"Image generation task created, ID: {prompt_id}")
             
             # Wait for generation to complete
-            max_retries = 30  # Wait up to 30 seconds
+            max_retries = 500  # Increase timeout to 500 seconds
             retry_count = 0
             while retry_count < max_retries:
-                print(f"Waiting for image generation to complete... ({retry_count + 1}/{max_retries})")
-                history = requests.get(f"{self.api_url}/history/{prompt_id}")
-                if history.status_code == 200:
-                    history_data = history.json()
-                    if prompt_id in history_data:
-                        outputs = history_data[prompt_id]['outputs']
-                        if outputs:
-                            # Get generated image
-                            image_data = outputs['8']['images'][0]
-                            # Remove all spaces and special characters from title
-                            safe_title = ''.join(e for e in scene.title if e.isalnum() or e in ('_', '-'))
-                            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                            image_filename = f"scene_{safe_title}_{timestamp}.png"
-                            image_path = os.path.join(self.output_dir, image_filename)
-                            
-                            # Ensure output directory exists
-                            os.makedirs(os.path.dirname(image_path), exist_ok=True)
-                            
-                            # Download and save image
-                            print(f"Downloading generated image: {image_data['filename']}")
-                            image_response = requests.get(f"{self.api_url}/view?filename={image_data['filename']}&subfolder={image_data['subfolder']}&type={image_data['type']}")
-                            if image_response.status_code == 200:
-                                with open(image_path, "wb") as f:
-                                    f.write(image_response.content)
-                                print(f"Image saved to: {image_path}")
-                                # Return path with /static prefix, using forward slash as separator
-                                relative_path = os.path.relpath(image_path, "static").replace("\\", "/")
-                                return f"/static/{relative_path}"
-                            else:
-                                print(f"Error: Failed to download image, status code: {image_response.status_code}")
-                                print(f"Response content: {image_response.text}")
+                try:
+                    print(f"Waiting for image generation to complete... ({retry_count + 1}/{max_retries})")
+                    history = requests.get(f"{self.api_url}/history/{prompt_id}")
+                    if history.status_code == 200:
+                        history_data = history.json()
+                        if prompt_id in history_data:
+                            outputs = history_data[prompt_id]['outputs']
+                            if outputs:
+                                # Get generated image
+                                image_data = outputs['37']['images'][0]  # Changed from '12' to '37' to match our workflow
+                                # Remove all spaces and special characters from title
+                                safe_title = ''.join(e for e in scene.title if e.isalnum() or e in ('_', '-'))
+                                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                image_filename = f"scene_{safe_title}_{timestamp}.png"
+                                image_path = os.path.join(self.output_dir, image_filename)
+                                
+                                # Ensure output directory exists
+                                os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                                
+                                # Download and save image
+                                print(f"Downloading generated image: {image_data['filename']}")
+                                image_response = requests.get(f"{self.api_url}/view?filename={image_data['filename']}&subfolder={image_data['subfolder']}&type={image_data['type']}")
+                                if image_response.status_code == 200:
+                                    with open(image_path, "wb") as f:
+                                        f.write(image_response.content)
+                                    print(f"Image saved to: {image_path}")
+                                    # Return path with /static prefix, using forward slash as separator
+                                    relative_path = os.path.relpath(image_path, "static").replace("\\", "/")
+                                    return f"/static/{relative_path}"
+                                else:
+                                    print(f"Error: Failed to download image, status code: {image_response.status_code}")
+                                    print(f"Response content: {image_response.text}")
+                    elif history.status_code == 404:
+                        print("Generation task not found, retrying...")
+                    else:
+                        print(f"Error checking generation status: {history.status_code}")
+                        print(f"Response content: {history.text}")
+                except requests.exceptions.RequestException as e:
+                    print(f"Network error while checking generation status: {str(e)}")
+                except Exception as e:
+                    print(f"Unexpected error while checking generation status: {str(e)}")
+                    import traceback
+                    print(f"Error stack trace: {traceback.format_exc()}")
+                
                 time.sleep(1)  # Wait 1 second
                 retry_count += 1
                 

@@ -54,16 +54,18 @@ class StoryCreator:
             3. Divided into 3-5 scenes
             4. Each scene must have detailed descriptions
             5. Please strictly follow the JSON format above
-            6. image_prompt must be in English and suitable for image generation
-            7. Each scene's image_prompt must include character's appearance, clothing and features
-            8. Ensure character descriptions in the story match the input character information exactly
+            6. All text must be in English only, no non-English characters or text
+            7. image_prompt must be in English and suitable for image generation
+            8. Each scene's image_prompt must include character's appearance, clothing and features
+            9. Ensure character descriptions in the story match the input character information exactly
+            10. Do not use any non-English characters or text in any part of the story
             """
             
             response = requests.post(
                 self.api_url,
                 json={
                     "messages": [
-                        {"role": "system", "content": "You are a professional children's story writer. Please return data strictly in JSON format and in English only."},
+                        {"role": "system", "content": "You are a professional children's story writer. Please return data strictly in JSON format and in English only. Do not use any non-English characters or text in any part of the story."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,
@@ -72,7 +74,7 @@ class StoryCreator:
             )
             
             if response.status_code != 200:
-                print(f"错误：生成故事失败，状态码：{response.status_code}")
+                print(f"Error: Failed to generate story, status code: {response.status_code}")
                 return None
                 
             result = response.json()
