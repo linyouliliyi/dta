@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from agents.character_designer import CharacterDesigner
 from agents.story_creator import StoryCreator
 from agents.art_designer import ArtDesigner
@@ -12,7 +12,7 @@ import json
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 app.config['UPLOAD_FOLDER'] = 'static/images'
 
 # 确保上传目录存在
@@ -27,6 +27,10 @@ book_maker = BookMaker()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/static/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 def generate_story_stream(user_input):
     try:

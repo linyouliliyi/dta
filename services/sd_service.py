@@ -6,150 +6,80 @@ from typing import Dict, Any, Optional
 import logging
 from PIL import Image
 import io
+import time
 
 class SDService:
-    def __init__(self, api_url: str = "http://localhost:8188"):
+    def __init__(self, api_url: str = "http://localhost:8188", workflow_path: str = "workflows/default_workflow.json"):
         self.api_url = api_url
         self.logger = logging.getLogger(__name__)
+        self.workflow_path = workflow_path
+        self.workflow = self._load_workflow()
         
-    def _load_workflow(self, workflow_path: str) -> Dict[str, Any]:
+    def _load_workflow(self) -> Dict[str, Any]:
         """加载ComfyUI工作流配置"""
-        with open(workflow_path, 'r') as f:
-            return json.load(f)
+        try:
+            with open(self.workflow_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.error(f"Error loading workflow: {str(e)}")
+            raise
     
     def generate_image(self, 
                       prompt: str, 
                       negative_prompt: str = "",
-                      width: int = 512,
-                      height: int = 512,
-                      steps: int = 20) -> Optional[str]:
+                      width: int = 1000,
+                      height: int = 600,
+                      steps: int = 12) -> Optional[str]:
         """生成图像"""
         try:
-            # 构建ComfyUI工作流
-            workflow = {
-                "prompt": {
-                    "1": {
-                        "inputs": {
-                            "unet_name": "flux1-schnell.sft",
-                            "weight_dtype": "fp8_e5m2"
-                        },
-                        "class_type": "UNETLoader",
-                        "_meta": {"title": "Load Diffusion Model"}
-                    },
-                    "2": {
-                        "inputs": {
-                            "clip_name1": "t5xxl_fp16.safetensors",
-                            "clip_name2": "clip_l.safetensors",
-                            "type": "flux"
-                        },
-                        "class_type": "DualCLIPLoader",
-                        "_meta": {"title": "DualCLIPLoader"}
-                    },
-                    "3": {
-                        "inputs": {
-                            "vae_name": "ae.sft"
-                        },
-                        "class_type": "VAELoader",
-                        "_meta": {"title": "Load VAE"}
-                    },
-                    "4": {
-                        "inputs": {
-                            "seed": 501348891644945,
-                            "steps": 15,
-                            "cfg": 1,
-                            "sampler_name": "euler",
-                            "scheduler": "simple",
-                            "denoise": 1,
-                            "model": ["54", 0],
-                            "positive": ["58", 0],
-                            "negative": ["46", 0],
-                            "latent_image": ["42", 0]
-                        },
-                        "class_type": "KSampler",
-                        "_meta": {"title": "KSampler"}
-                    },
-                    "16": {
-                        "inputs": {
-                            "samples": ["4", 0],
-                            "vae": ["3", 0]
-                        },
-                        "class_type": "VAEDecode",
-                        "_meta": {"title": "VAE Decode"}
-                    },
-                    "37": {
-                        "inputs": {
-                            "images": ["16", 0]
-                        },
-                        "class_type": "PreviewImage",
-                        "_meta": {"title": "Preview Image"}
-                    },
-                    "42": {
-                        "inputs": {
-                            "width": width,
-                            "height": height,
-                            "batch_size": 1
-                        },
-                        "class_type": "EmptyLatentImage",
-                        "_meta": {"title": "Empty Latent Image"}
-                    },
-                    "46": {
-                        "inputs": {
-                            "text": "low quality",
-                            "clip": ["2", 0]
-                        },
-                        "class_type": "CLIPTextEncode",
-                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
-                    },
-                    "53": {
-                        "inputs": {
-                            "text": prompt,
-                            "clip": ["54", 1]
-                        },
-                        "class_type": "CLIPTextEncode",
-                        "_meta": {"title": "CLIP Text Encode (Prompt)"}
-                    },
-                    "54": {
-                        "inputs": {
-                            "lora_name": "儿童动物插画故事绘本_V2.0.safetensors",
-                            "strength_model": 0.8,
-                            "strength_clip": 1,
-                            "model": ["1", 0],
-                            "clip": ["2", 0]
-                        },
-                        "class_type": "LoraLoader",
-                        "_meta": {"title": "Load LoRA"}
-                    },
-                    "58": {
-                        "inputs": {
-                            "guidance": 3.5,
-                            "conditioning": ["53", 0]
-                        },
-                        "class_type": "FluxGuidance",
-                        "_meta": {"title": "FluxGuidance"}
-                    }
-                }
-            }
+            # 复制工作流配置
+            workflow = {"prompt": self.workflow.copy()}
+            
+            # 更新工作流参数
+            workflow["prompt"]["5"]["inputs"]["width"] = 504  # 初始潜在空间尺寸
+            workflow["prompt"]["5"]["inputs"]["height"] = 304
+            workflow["prompt"]["10"]["inputs"]["width"] = width  # 上采样后的尺寸
+            workflow["prompt"]["10"]["inputs"]["height"] = height
+            workflow["prompt"]["3"]["inputs"]["steps"] = steps
+            workflow["prompt"]["6"]["inputs"]["text"] = prompt
+            workflow["prompt"]["7"]["inputs"]["text"] = negative_prompt
             
             # 发送请求到ComfyUI
-            response = requests.post(f"{self.api_url}/queue", json=workflow)
+            self.logger.info("Sending request to ComfyUI...")
+            response = requests.post(f"{self.api_url}/prompt", json=workflow)
             if response.status_code != 200:
                 self.logger.error(f"Error queuing prompt: {response.text}")
                 return None
                 
             # 获取生成结果
             prompt_id = response.json()['prompt_id']
+            self.logger.info(f"Generation started with prompt_id: {prompt_id}")
             
             # 等待生成完成
-            while True:
-                history = requests.get(f"{self.api_url}/history/{prompt_id}")
-                if history.status_code == 200:
-                    break
-                    
-            # 获取生成的图像
-            output_images = history.json()['outputs']
-            if output_images:
-                return output_images[0]['image']  # 返回图像路径
+            max_retries = 250  # 最多等待250秒
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    history = requests.get(f"{self.api_url}/history/{prompt_id}")
+                    if history.status_code == 200:
+                        history_data = history.json()
+                        if prompt_id in history_data:
+                            outputs = history_data[prompt_id]['outputs']
+                            if outputs:
+                                # 获取生成的图像
+                                image_data = outputs['12']['images'][0]
+                                return image_data['filename']
+                    elif history.status_code == 404:
+                        self.logger.info(f"Generation in progress... ({retry_count + 1}/{max_retries})")
+                    else:
+                        self.logger.error(f"Error checking history: {history.status_code} - {history.text}")
+                except Exception as e:
+                    self.logger.error(f"Error while checking history: {str(e)}")
                 
+                time.sleep(1)  # 等待1秒
+                retry_count += 1
+            
+            self.logger.error("Generation timed out")
             return None
             
         except Exception as e:
@@ -173,7 +103,17 @@ class SDService:
     
     def generate_scene_image(self, scene: Dict[str, Any]) -> Optional[str]:
         """生成场景图像"""
+        # 确保提示词格式正确
+        prompt = scene['image_prompt'].replace('\n', ' ').strip()
+        negative_prompt = scene.get('negative_prompt', "ugly, scary, realistic, photographic, adult content")
+        
+        # 添加额外的质量控制参数
         return self.generate_image(
-            prompt=scene['image_prompt'],
-            negative_prompt="ugly, scary, realistic, photographic, adult content"
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            cfg_scale=7.5,  # 增加提示词权重
+            sampler_name="DPM++ 2M Karras",  # 使用更好的采样器
+            steps=20,  # 增加步数
+            width=1000,
+            height=600
         )

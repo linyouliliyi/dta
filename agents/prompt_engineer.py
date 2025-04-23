@@ -69,4 +69,93 @@ class PromptEngineer:
         custom_negatives = prompt_details['negative_prompt'].split(",")
         all_negatives = standard_negatives + [neg.strip() for neg in custom_negatives]
         
-        return ", ".join(all_negatives) 
+        return ", ".join(all_negatives)
+
+    def generate_scene_prompt(self, scene_elements: dict) -> str:
+        """生成场景提示词"""
+        try:
+            # 打印接收到的场景元素，帮助调试
+            print(f"Received scene_elements: {scene_elements}")
+            
+            # 获取场景描述
+            scene_description = ""
+            if isinstance(scene_elements, dict):
+                # 获取主要描述并处理
+                description = scene_elements.get('description', '').strip()
+                
+                # 处理主角描述
+                # 找到第一个逗号前的主角名字
+                parts = description.split(',', 1)
+                if len(parts) > 1:
+                    character_name = parts[0].strip()
+                    rest_description = parts[1].strip()
+                    
+                    # 如果主角名字后面有"is"或"was"，去掉它们
+                    character_name = character_name.replace(' is', '').replace(' was', '')
+                    
+                    # 重组描述，使其更自然
+                    description = f"{character_name}, {rest_description}"
+                
+                # 获取其他元素
+                main_character_action = scene_elements.get('main_character_action', '').strip()
+                supporting_characters = scene_elements.get('supporting_characters', '').strip()
+                environment = scene_elements.get('environment', '').strip()
+                image_prompt = scene_elements.get('image_prompt', '').strip()
+                
+                # 组合所有描述，过滤掉空字符串、None、[]等
+                scene_description = ', '.join([
+                    part.strip() for part in [
+                        description,
+                        main_character_action,
+                        supporting_characters,
+                        environment,
+                        image_prompt
+                    ] if part and part.strip() and part.strip() != '[]'
+                ])
+            elif isinstance(scene_elements, str):
+                scene_description = scene_elements.strip()
+                
+            # 确保场景描述是字符串并清理格式
+            scene_description = str(scene_description).strip()
+            # 清理连续的逗号和空格
+            scene_description = ', '.join(
+                part.strip() for part in scene_description.split(',')
+                if part.strip() and part.strip() != '[]'
+            )
+            print(f"Processed scene_description: {scene_description}")
+            
+            # 构建基本提示词
+            base_elements = [
+                scene_description,  # 完整的场景描述
+                'children\'s book illustration style',  # 风格
+                'digital art',  # 艺术形式
+                'colorful',  # 色彩
+                'detailed',  # 细节
+                'character interaction',  # 角色互动
+                'full scene'  # 完整场景
+            ]
+            
+            # 移除空的部分并连接，确保清理格式
+            full_prompt = ', '.join(
+                part.strip() for part in base_elements
+                if part and part.strip() and part.strip() != '[]'
+            )
+            
+            # 最后清理一次连续的逗号和空格
+            full_prompt = ', '.join(
+                part.strip() for part in full_prompt.split(',')
+                if part.strip() and part.strip() != '[]'
+            )
+            
+            print(f"Generated prompt: {full_prompt}")
+            return full_prompt
+            
+        except Exception as e:
+            print(f"Error generating scene prompt: {str(e)}")
+            print(f"scene_elements type: {type(scene_elements)}")
+            print(f"scene_elements content: {scene_elements}")
+            return ""
+
+    def generate_negative_prompt(self) -> str:
+        """生成负面提示词"""
+        return "ugly, scary, realistic, photographic, adult content, deformed, distorted, disfigured, poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, disconnected limbs, mutation, blurry, fuzzy, out of focus, bad art, watermark, signature, text, chinese characters, asian text, non-english text, empty background, isolated character, single character, no interaction, static pose" 

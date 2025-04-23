@@ -20,6 +20,7 @@ class CharacterDesigner:
             {{
                 "name": "Character name",
                 "age": age,
+                "identity": "a young boy/a little cat/a friendly dog etc.",  # 角色身份描述
                 "appearance": {{
                     "physical_traits": ["trait1", "trait2"],
                     "clothing": ["clothing1", "clothing2"],
@@ -35,7 +36,10 @@ class CharacterDesigner:
                 "dislikes": ["dislike1", "dislike2"]
             }}
             
-            Important: All text must be in English only. Do not use any non-English characters or text.
+            Important: 
+            1. All text must be in English only. Do not use any non-English characters or text.
+            2. The identity field should clearly describe what the character is (e.g., "a young boy", "a little cat", "a friendly dog").
+            3. Make sure the identity matches the physical traits and overall character concept.
             """
             
             # 检查 LM Studio 服务是否可用
@@ -53,7 +57,7 @@ class CharacterDesigner:
                 self.api_url,
                 json={
                     "messages": [
-                        {"role": "system", "content": "You are a professional children's story character designer. Return data in JSON format only, using English text exclusively. Do not use any non-English characters or text."},
+                        {"role": "system", "content": "You are a professional children's story character designer. Return data in JSON format only, using English text exclusively. Do not use any non-English characters or text. Always include a clear identity description for the character."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,
@@ -77,6 +81,7 @@ class CharacterDesigner:
                     return Character(
                         name=character_data.get("name", "未知"),
                         age=character_data.get("age", 5),
+                        identity=character_data.get("identity", "a character"),  # 添加identity字段
                         appearance=character_data.get("appearance", {
                             "physical_traits": [],
                             "clothing": [],

@@ -17,6 +17,7 @@ class BookMaker:
         self.line_height = 14
         self.font_size = 12
         self.output_dir = "output/books"
+        self.image_dir = "static/images"  # 添加图片目录
         os.makedirs(self.output_dir, exist_ok=True)
         
     def create_book(self, story: Story, images: List[str]) -> str:
@@ -44,8 +45,13 @@ class BookMaker:
                 
                 # 添加图片
                 y = self.page_size[1] - self.margin - self.line_height * 2  # 初始化y坐标
-                if os.path.exists(image_path):
-                    img = Image.open(image_path)
+                
+                # 转换图片路径从URL路径到文件系统路径
+                image_filename = os.path.basename(image_path)  # 从URL路径中提取文件名
+                image_filepath = os.path.join(self.image_dir, image_filename)  # 构建实际的文件路径
+                
+                if os.path.exists(image_filepath):
+                    img = Image.open(image_filepath)
                     # 调整图片大小以适应页面
                     img_width, img_height = img.size
                     max_width = self.page_size[0] - 2 * self.margin
@@ -58,7 +64,9 @@ class BookMaker:
                     # 居中显示图片
                     x = (self.page_size[0] - new_width) / 2
                     y = self.page_size[1] - self.margin - new_height
-                    c.drawImage(image_path, x, y, width=new_width, height=new_height)
+                    c.drawImage(image_filepath, x, y, width=new_width, height=new_height)
+                else:
+                    print(f"警告：找不到图片文件 {image_filepath}")
                 
                 # 添加场景描述
                 c.setFont("Helvetica", self.font_size)

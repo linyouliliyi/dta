@@ -1,147 +1,142 @@
 # Children's Story Generator
 
-A web application that generates personalized children's stories with AI-generated illustrations. This project uses multiple AI models to create unique stories based on character descriptions provided by users.
+An AI-powered application that automatically creates children's stories with beautiful illustrations.
 
 ## Features
 
-- Character creation based on user descriptions
-- AI-generated story creation
-- Scene-by-scene illustration generation
-- Interactive storybook creation
-- Real-time progress tracking
-- Beautiful and child-friendly UI
+- Uses large language models to generate characters and storylines
+- Creates high-quality illustrations using Stable Diffusion
+- Automatically generates PDF storybooks
+- Supports custom character traits and story themes
+- Includes educational value in generated stories
 
-## Technical Stack
+## Requirements
 
-- Backend: Python, Flask
-- Frontend: HTML, CSS, JavaScript, TailwindCSS
-- AI Models:
-  - Character and Story Generation: Local LLM (via API)
-  - Image Generation: ComfyUI with Stable Diffusion
-- PDF Generation: ReportLab
+- Python 3.8+
+- ComfyUI (for image generation)
+- LM Studio (for text generation)
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone [repository-url]
+git clone [repository_url]
 cd children-story-generator
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
+2. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up ComfyUI:
-- Install ComfyUI locally
-- Ensure it's running on port 8188
-- Install required models and LoRAs:
-  - Base model: sd_xl_base_1.0.safetensors
-  - LoRA: COOLKIDS_MERGE_V2.5.safetensors
+3. Configure models:
+   - Configure model paths in `config/models.py`
+   - Ensure model files are placed in the correct directories:
+     - Base models in `models/checkpoints/`
+     - LoRA models in `models/loras/`
+     - VAE models in `models/vae/`
+     - Text embedding models in `models/embeddings/`
 
-5. Set up Local LLM:
-- Install and run a local LLM (e.g., llama.cpp)
-- Ensure it's running on port 1234
+4. Download required models:
+   - Base model: [Children's Book MIX_V1](https://drive.google.com/file/d/1GZGxQakaymBhD4bQVABVlRpMPg5bEskF/view?usp=sharing)
+   - LoRA model: [Muertu 1.5丨Hand-drawn Fairy Tale World Children's Book Enhancement LoRA](https://drive.google.com/file/d/1hfaFc5KfJc_sWMk1WwqV1gsqQbm7ULBM/view?usp=drive_link)
 
-## Project Structure
+## Configuration
 
+1. ComfyUI Configuration:
+   - Ensure ComfyUI service is running at `http://localhost:8188`
+   - Workflow configuration file located at `workflows/default_workflow.json`
+   - Default image dimensions: Initial 504x304, upscaled to 1000x600
+
+2. LM Studio Configuration:
+   - Ensure LM Studio service is running at `http://localhost:1234`
+   - Use appropriate models for text generation
+
+3. Directory Structure:
 ```
 .
-├── app.py                 # Main Flask application
-├── agents/               # AI agent implementations
-│   ├── art_designer.py   # Image generation
-│   ├── book_maker.py     # PDF generation
-│   ├── character_designer.py  # Character creation
-│   ├── prompt_engineer.py     # Prompt optimization
-│   └── story_creator.py       # Story generation
-├── models/               # Data models
-│   ├── character.py     # Character model
-│   └── story.py         # Story model
-├── static/              # Static files
-│   └── images/         # Generated images
-├── templates/           # HTML templates
-│   └── index.html      # Main UI
-├── utils/              # Utility functions
-│   └── prompt_templates.py  # Prompt templates
-└── output/             # Generated storybooks
-    └── books/          # PDF files
+├── agents/                 # Agent classes
+├── config/                 # Configuration files
+├── models/                 # Model files
+│   ├── checkpoints/       # Base models
+│   ├── loras/            # LoRA models
+│   ├── vae/              # VAE models
+│   └── embeddings/       # Text embedding models
+├── static/                # Static files
+│   └── images/           # Generated images
+├── templates/             # HTML templates
+├── workflows/             # ComfyUI workflows
+└── output/                # Output files
+    └── books/            # Generated PDF storybooks
 ```
 
 ## Usage
 
-1. Start the application:
+1. Start the service:
 ```bash
 python app.py
 ```
 
-2. Open your browser and navigate to:
-```
-http://localhost:5000
-```
+2. Access the application:
+   - Open browser and visit `http://localhost:5000`
+   - Enter character description
+   - Click generate button
 
-3. Enter a character description in the text area and click "Generate Story"
+3. View results:
+   - Generated images are saved in `static/images/`
+   - Generated PDFs are saved in `output/books/`
 
-4. Wait for the story generation process to complete:
-   - Character creation
-   - Story generation
-   - Image generation
-   - Storybook creation
+## Workflow
 
-5. View and download your generated storybook
+1. Character Generation:
+   - Generate character traits based on user input
+   - Includes identity, appearance, personality, etc.
 
-## Development
+2. Story Generation:
+   - Generate story plot based on character traits
+   - Includes multiple scenes and ending
 
-### Adding New Features
+3. Image Generation:
+   - Generate illustrations for each scene
+   - Maintains character consistency
 
-1. Create a new branch:
-```bash
-git checkout -b feature/your-feature-name
-```
+4. PDF Generation:
+   - Combines story and images into PDF
+   - Includes cover, scenes, and ending
 
-2. Make your changes
+## Important Notes
 
-3. Test your changes:
-```bash
-python -m pytest tests/
-```
+1. Ensure all services are running properly:
+   - ComfyUI service
+   - LM Studio service
+   - Flask application
 
-4. Commit and push:
-```bash
-git add .
-git commit -m "Add your feature description"
-git push origin feature/your-feature-name
-```
+2. Model files:
+   - Ensure model files are in correct directories
+   - Verify model path configurations
 
-### Running Tests
+3. Image generation:
+   - Default resolution: 1000x600
+   - Parameters can be adjusted in workflow configuration
 
-```bash
-python -m pytest tests/
-```
+## Troubleshooting
+
+1. Images not displaying:
+   - Check image paths
+   - Verify image files exist
+   - Check file permissions
+
+2. Generation failures:
+   - Verify services are running
+   - Check log output
+   - Verify model configurations
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+Feel free to submit Issues and Pull Requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- ComfyUI for image generation
-- Local LLM for story generation
-- TailwindCSS for UI components
-- Flask for web framework
+MIT License
 
 
