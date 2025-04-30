@@ -9,6 +9,31 @@ logger = logging.getLogger(__name__)
 class PromptEngineer:
     def __init__(self):
         self.api_url = "http://localhost:1234/v1/chat/completions"
+        self.character_consistency_weights = {
+            "physical_traits": {
+                "species": 1.5,      # 最高权重，确保物种特征
+                "gender": 1.4,       # 高权重，确保性别特征
+                "height": 1.3,       # 高权重，确保身高特征
+                "build": 1.3,        # 高权重，确保体型特征
+                "skin_tone": 1.4,    # 高权重，确保肤色特征
+                "hair_color": 1.4,   # 高权重，确保发色特征
+                "hair_style": 1.4,   # 高权重，确保发型特征
+                "eye_color": 1.4,    # 高权重，确保眼睛颜色特征
+                "age_appearance": 1.3 # 高权重，确保年龄特征
+            },
+            "clothing": {
+                "main_outfit": 1.4,    # 高权重，确保主要服装
+                "signature_item": 1.5,  # 最高权重，确保标志性物品
+                "accessories": 1.3,     # 高权重，确保配饰
+                "colors": 1.4          # 高权重，确保颜色特征
+            },
+            "distinctive_features": {
+                "unique_markings": 1.5,    # 最高权重，确保独特标记
+                "special_features": 1.5,   # 最高权重，确保特殊特征
+                "characteristic_pose": 1.4, # 高权重，确保特征姿势
+                "expression": 1.4          # 高权重，确保表情特征
+            }
+        }
         
     def generate_detailed_prompt(self, scene: Scene, character: Character) -> Optional[Dict[str, str]]:
         """
@@ -16,11 +41,47 @@ class PromptEngineer:
         Returns a dictionary containing both positive and negative prompts.
         """
         try:
-            # Create a compact character description
-            character_details = f"Character({character.name}): {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, distinctive features: {', '.join(character.appearance['distinctive_features'])}"
+            # Create a weighted character description that emphasizes consistent features
+            character_details = []
+            
+            # Add physical traits with specific weights
+            if character.appearance.get('physical_traits'):
+                for trait in character.appearance['physical_traits']:
+                    # 提取特征类型和描述
+                    trait_type = trait.split(':')[0].strip().lower()
+                    trait_desc = trait.split(':')[1].strip() if ':' in trait else trait
+                    
+                    # 获取对应的权重
+                    weight = self.character_consistency_weights['physical_traits'].get(trait_type, 1.3)
+                    character_details.append(f"({trait_desc}:{weight})")
+            
+            # Add clothing with specific weights
+            if character.appearance.get('clothing'):
+                for item in character.appearance['clothing']:
+                    # 提取服装类型和描述
+                    item_type = item.split(':')[0].strip().lower()
+                    item_desc = item.split(':')[1].strip() if ':' in item else item
+                    
+                    # 获取对应的权重
+                    weight = self.character_consistency_weights['clothing'].get(item_type, 1.2)
+                    character_details.append(f"({item_desc}:{weight})")
+            
+            # Add distinctive features with specific weights
+            if character.appearance.get('distinctive_features'):
+                for feature in character.appearance['distinctive_features']:
+                    # 提取特征类型和描述
+                    feature_type = feature.split(':')[0].strip().lower()
+                    feature_desc = feature.split(':')[1].strip() if ':' in feature else feature
+                    
+                    # 获取对应的权重
+                    weight = self.character_consistency_weights['distinctive_features'].get(feature_type, 1.4)
+                    character_details.append(f"({feature_desc}:{weight})")
+            
+            # Combine character details
+            character_prompt = f"Character({character.name}): {', '.join(character_details)}"
 
             # Combine scene and character details into a compact prompt
-            base_prompt = f"{scene.image_prompt}, {character_details}"
+            base_prompt = f"{scene.image_prompt}, {character_prompt}"
 
             # Add artistic style and quality modifiers
             style_controllers = {
@@ -71,69 +132,89 @@ class PromptEngineer:
         
         return ", ".join(all_negatives)
 
-    def generate_scene_prompt(self, scene_elements: dict) -> str:
+    def generate_scene_prompt(self, scene_elements: dict, character: Optional[Character] = None) -> str:
         """生成场景提示词"""
         try:
             # 打印接收到的场景元素，帮助调试
             print(f"Received scene_elements: {scene_elements}")
             
-            # 获取场景描述
-            scene_description = ""
+            # 构建基本提示词
+            base_elements = []
+            
+            # 1. 角色特征部分
+            if character and hasattr(character, 'appearance'):
+                character_features = []
+                
+                # 添加物理特征
+                if isinstance(character.appearance, dict) and 'physical_traits' in character.appearance:
+                    for trait in character.appearance['physical_traits']:
+                        trait_type = trait.split(':')[0].strip().lower()
+                        trait_desc = trait.split(':')[1].strip() if ':' in trait else trait
+                        weight = self.character_consistency_weights['physical_traits'].get(trait_type, 1.3)
+                        character_features.append(f"({trait_desc}:{weight})")
+                
+                # 添加服装特征
+                if isinstance(character.appearance, dict) and 'clothing' in character.appearance:
+                    for item in character.appearance['clothing']:
+                        item_type = item.split(':')[0].strip().lower()
+                        item_desc = item.split(':')[1].strip() if ':' in item else item
+                        weight = self.character_consistency_weights['clothing'].get(item_type, 1.2)
+                        character_features.append(f"({item_desc}:{weight})")
+                
+                # 添加独特特征
+                if isinstance(character.appearance, dict) and 'distinctive_features' in character.appearance:
+                    for feature in character.appearance['distinctive_features']:
+                        feature_type = feature.split(':')[0].strip().lower()
+                        feature_desc = feature.split(':')[1].strip() if ':' in feature else feature
+                        weight = self.character_consistency_weights['distinctive_features'].get(feature_type, 1.4)
+                        character_features.append(f"({feature_desc}:{weight})")
+                
+                # 将角色特征添加到基本元素中
+                if character_features:
+                    base_elements.append(f"Character({character.name}) features: {', '.join(character_features)}")
+
+            # 2. 场景描述部分
+            scene_elements_list = []
             if isinstance(scene_elements, dict):
                 # 获取主要描述并处理
                 description = scene_elements.get('description', '').strip()
                 
                 # 处理主角描述
-                # 找到第一个逗号前的主角名字
                 parts = description.split(',', 1)
                 if len(parts) > 1:
                     character_name = parts[0].strip()
                     rest_description = parts[1].strip()
-                    
-                    # 如果主角名字后面有"is"或"was"，去掉它们
                     character_name = character_name.replace(' is', '').replace(' was', '')
-                    
-                    # 重组描述，使其更自然
                     description = f"{character_name}, {rest_description}"
                 
-                # 获取其他元素
-                main_character_action = scene_elements.get('main_character_action', '').strip()
-                supporting_characters = scene_elements.get('supporting_characters', '').strip()
-                environment = scene_elements.get('environment', '').strip()
-                image_prompt = scene_elements.get('image_prompt', '').strip()
-                
-                # 组合所有描述，过滤掉空字符串、None、[]等
-                scene_description = ', '.join([
-                    part.strip() for part in [
-                        description,
-                        main_character_action,
-                        supporting_characters,
-                        environment,
-                        image_prompt
-                    ] if part and part.strip() and part.strip() != '[]'
+                scene_elements_list.extend([
+                    description,
+                    scene_elements.get('main_character_action', '').strip(),
+                    scene_elements.get('supporting_characters', '').strip(),
+                    scene_elements.get('environment', '').strip(),
+                    scene_elements.get('image_prompt', '').strip()
                 ])
             elif isinstance(scene_elements, str):
-                scene_description = scene_elements.strip()
-                
-            # 确保场景描述是字符串并清理格式
-            scene_description = str(scene_description).strip()
-            # 清理连续的逗号和空格
-            scene_description = ', '.join(
-                part.strip() for part in scene_description.split(',')
-                if part.strip() and part.strip() != '[]'
-            )
-            print(f"Processed scene_description: {scene_description}")
+                scene_elements_list.append(scene_elements.strip())
             
-            # 构建基本提示词
-            base_elements = [
-                scene_description,  # 完整的场景描述
-                'children\'s book illustration style',  # 风格
-                'digital art',  # 艺术形式
-                'colorful',  # 色彩
-                'detailed',  # 细节
-                'character interaction',  # 角色互动
-                'full scene'  # 完整场景
+            # 过滤并添加场景描述
+            scene_description = ', '.join(
+                part.strip() for part in scene_elements_list
+                if part and part.strip() and part.strip() != '[]'
+            )
+            if scene_description:
+                base_elements.append(scene_description)
+
+            # 3. 风格要求部分
+            style_elements = [
+                'children\'s book illustration style',  # 基本风格
+                'digital art',                         # 艺术形式
+                'colorful',                           # 色彩要求
+                'detailed',                           # 细节要求
+                'character interaction',              # 互动要求
+                'full scene'                          # 场景完整性
             ]
+            base_elements.extend(style_elements)
             
             # 移除空的部分并连接，确保清理格式
             full_prompt = ', '.join(

@@ -7,8 +7,12 @@ An AI-powered application that automatically creates children's stories with bea
 - Uses large language models to generate characters and storylines
 - Creates high-quality illustrations using Stable Diffusion
 - Automatically generates PDF storybooks
-- Supports custom character traits and story themes
+- Supports two character creation methods:
+  - Random selection from [PolyU Storyworld Character Library](https://github.com/venetanji/polyu-storyworld)
+  - Custom character creation with detailed traits
 - Includes educational value in generated stories
+- Real-time generation progress tracking
+- View previously generated storybooks in output directory
 
 ## Requirements
 
@@ -34,8 +38,6 @@ pip install -r requirements.txt
    - Ensure model files are placed in the correct directories:
      - Base models in `models/checkpoints/`
      - LoRA models in `models/loras/`
-     - VAE models in `models/vae/`
-     - Text embedding models in `models/embeddings/`
 
 4. Download required models:
    - Base model: [Children's Book MIX_V1](https://drive.google.com/file/d/1GZGxQakaymBhD4bQVABVlRpMPg5bEskF/view?usp=sharing)
@@ -79,30 +81,50 @@ python app.py
 
 2. Access the application:
    - Open browser and visit `http://localhost:5000`
-   - Enter character description
-   - Click generate button
+   - Choose character creation method:
+     - Click "Use Polyu-Storyworld Characters" to select from PolyU Storyworld library
+     - Click "Create Custom Character" to create your own
+   - Optionally enter a story theme
+   - Click "Generate Story" button
 
 3. View results:
    - Generated images are saved in `static/images/`
    - Generated PDFs are saved in `output/books/`
+   - Previously generated storybooks can be found in the output directory
 
-## Workflow
+## Character Creation
 
-1. Character Generation:
-   - Generate character traits based on user input
-   - Includes identity, appearance, personality, etc.
+### Method 1: Using PolyU Storyworld Characters
+- Click "Use Polyu-Storyworld Characters" to select a pre-made character
+- Character source file will be displayed
+- Characters are from [PolyU Storyworld](https://github.com/venetanji/polyu-storyworld)
+
+### Method 2: Custom Character Creation
+- Click "Create Custom Character"
+- Fill in character details:
+  - Name
+  - Age
+  - Appearance
+  - Personality
+  - Backstory
+
+## Story Generation Process
+
+1. Character Selection/Creation:
+   - Progress indicator shows current step
+   - Real-time status updates
 
 2. Story Generation:
-   - Generate story plot based on character traits
-   - Includes multiple scenes and ending
+   - Creates engaging plot based on character
+   - Generates multiple scenes
 
 3. Image Generation:
-   - Generate illustrations for each scene
-   - Maintains character consistency
+   - Creates illustrations for each scene
+   - Shows progress for each image
 
-4. PDF Generation:
-   - Combines story and images into PDF
-   - Includes cover, scenes, and ending
+4. PDF Creation:
+   - Combines story and images
+   - Saves to output directory
 
 ## Important Notes
 

@@ -16,7 +16,7 @@ class Story:
     scenes: List[Scene]
     theme: str
     moral: str
-    target_age_range: tuple
+    target_age_range: str
     
     def add_scene(self, scene: Scene):
         self.scenes.append(scene)

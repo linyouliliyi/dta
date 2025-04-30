@@ -18,179 +18,176 @@ class StoryCreator:
     def _check_api_availability(self) -> bool:
         """检查API服务是否可用"""
         try:
-            response = requests.get(self.api_url, timeout=5)
+            response = requests.get("http://localhost:1234/v1/models", timeout=5)
             return response.status_code == 200
         except requests.exceptions.RequestException as e:
             logger.error(f"API服务不可用: {str(e)}")
             return False
-    
-    def create_story(self, character: Character) -> Optional[Story]:
-        # 检查API服务是否可用
-        if not self._check_api_availability():
-            logger.error("故事生成API服务不可用")
-            return None
-            
+
+    def _make_api_request(self, prompt: str) -> Optional[dict]:
+        """发送API请求并处理重试逻辑"""
         for attempt in range(self.max_retries):
             try:
-                prompt = f"""
-                Create an interesting children's story for the following character:
-                
-                Character information:
-                - Name: {character.name}
-                - Age: {character.age}
-                - Appearance: {', '.join(character.appearance['physical_traits'])}
-                - Clothing: {', '.join(character.appearance['clothing'])}
-                - Features: {', '.join(character.appearance['distinctive_features'])}
-                - Personality: {', '.join(character.personality['traits'])}
-                - Background: {character.background}
-                
-                Please return the story content in JSON format as follows:
-                {{
-                    "title": "Story title",
-                    "theme": "Story theme",
-                    "moral": "Educational value of the story",
-                    "target_age_range": [3, 8],
-                    "scenes": [
-                        {{
-                            "title": "Scene 1 title",
-                            "description": "Detailed description of scene 1, including supporting characters and their actions",
-                            "supporting_characters": "Description of supporting characters in this scene",
-                            "main_character_action": "Detailed description of main character's action and expression",
-                            "environment": "Description of the scene environment",
-                            "image_prompt": "children's book illustration style, {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}, detailed scene description, colorful, high quality, soft lighting, warm colors, digital art"
-                        }},
-                        {{
-                            "title": "Scene 2 title",
-                            "description": "Detailed description of scene 2, including supporting characters and their actions",
-                            "supporting_characters": "Description of supporting characters in this scene",
-                            "main_character_action": "Detailed description of main character's action and expression",
-                            "environment": "Description of the scene environment",
-                            "image_prompt": "children's book illustration style, {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}, detailed scene description, colorful, high quality, soft lighting, warm colors, digital art"
-                        }},
-                        {{
-                            "title": "Scene 3 title",
-                            "description": "Detailed description of scene 3, including supporting characters and their actions",
-                            "supporting_characters": "Description of supporting characters in this scene",
-                            "main_character_action": "Detailed description of main character's action and expression",
-                            "environment": "Description of the scene environment",
-                            "image_prompt": "children's book illustration style, {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}, detailed scene description, colorful, high quality, soft lighting, warm colors, digital art"
-                        }}
-                    ]
-                }}
-                
-                Story requirements:
-                1. Suitable for children
-                2. Contains educational value
-                3. Divided into 3-5 scenes
-                4. Each scene must have:
-                   - At least one supporting character (friend, family member, teacher, etc.)
-                   - Clear description of the main character's actions and expressions
-                   - Detailed environment description
-                   - Interaction between characters
-                5. Please strictly follow the JSON format above
-                6. All text must be in English only, no non-English characters or text
-                7. image_prompt must be in English and suitable for image generation
-                8. Each scene's image_prompt must include:
-                   - Main character's appearance, clothing and features
-                   - Supporting characters' descriptions
-                   - Main character's action and expression
-                   - Scene environment details
-                9. Ensure character descriptions in the story match the input character information exactly
-                10. Do not use any non-English characters or text in any part of the story
-                """
-                
-                logger.info("Sending story generation request to API...")
                 response = requests.post(
                     self.api_url,
                     json={
                         "messages": [
-                            {"role": "system", "content": "You are a professional children's story writer. Please return data strictly in JSON format and in English only. Do not use any non-English characters or text in any part of the story."},
+                            {"role": "system", "content": "You are a professional children's story writer. Return data in JSON format only, using English text exclusively."},
                             {"role": "user", "content": prompt}
                         ],
                         "temperature": 0.7,
                         "max_tokens": 2000
                     },
-                    timeout=30  # 设置超时时间
+                    timeout=30  # 设置较长的超时时间
                 )
                 
-                if response.status_code != 200:
-                    logger.error(f"故事生成API请求失败，状态码: {response.status_code}")
-                    logger.error(f"响应内容: {response.text}")
-                    if attempt < self.max_retries - 1:
-                        time.sleep(self.retry_delay)
-                        continue
-                    return None
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    logger.warning(f"API请求失败 (尝试 {attempt + 1}/{self.max_retries}): 状态码 {response.status_code}")
                     
-                result = response.json()
-                story_text = result['choices'][0]['message']['content']
-                
-                # 尝试从文本中提取JSON
-                try:
-                    # 使用正则表达式提取JSON部分
-                    json_match = re.search(r'\{.*\}', story_text, re.DOTALL)
-                    if json_match:
-                        story_data = json.loads(json_match.group())
-                        scenes = []
-                        for scene in story_data["scenes"]:
-                            # 构建更详细的图片提示词
-                            scene_description = scene["description"]
-                            supporting_characters = scene.get("supporting_characters", "")
-                            main_character_action = scene.get("main_character_action", "")
-                            environment = scene.get("environment", "")
-                            
-                            image_prompt = f"""
-                            children's book illustration style,
-                            main character: {', '.join(character.appearance['physical_traits'])}, wearing {', '.join(character.appearance['clothing'])}, with {', '.join(character.appearance['distinctive_features'])}, {main_character_action},
-                            supporting characters: {supporting_characters},
-                            environment: {environment},
-                            colorful, high quality, soft lighting, warm colors, digital art
-                            """
-                            
-                            # 清理提示词格式
-                            image_prompt = ' '.join(image_prompt.split())
-                            
-                            scenes.append(Scene(
-                                title=scene["title"],
-                                description=scene_description,
-                                image_prompt=image_prompt
-                            ))
-                            
-                        logger.info("故事生成成功")
-                        return Story(
-                            title=story_data["title"],
-                            character=character,
-                            scenes=scenes,
-                            theme=story_data["theme"],
-                            moral=story_data["moral"],
-                            target_age_range=tuple(story_data["target_age_range"])
-                        )
-                    else:
-                        logger.error("无法从响应中提取JSON数据")
-                        logger.error(f"原始响应: {story_text}")
-                        if attempt < self.max_retries - 1:
-                            time.sleep(self.retry_delay)
-                            continue
-                        return None
-                except json.JSONDecodeError as e:
-                    logger.error(f"解析故事JSON失败: {str(e)}")
-                    logger.error(f"原始响应: {story_text}")
-                    if attempt < self.max_retries - 1:
-                        time.sleep(self.retry_delay)
-                        continue
-                    return None
-                
             except requests.exceptions.RequestException as e:
-                logger.error(f"故事生成请求异常: {str(e)}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                return None
-            except Exception as e:
-                logger.error(f"故事生成过程中发生错误: {str(e)}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay)
-                    continue
-                return None
+                logger.warning(f"API请求异常 (尝试 {attempt + 1}/{self.max_retries}): {str(e)}")
+            
+            if attempt < self.max_retries - 1:
+                time.sleep(self.retry_delay)
         
-        logger.error("故事生成失败，已达到最大重试次数")
         return None
+    
+    def create_story(self, character: Character) -> Optional[Story]:
+        try:
+            # 构建角色描述
+            character_description = f"""
+            Character Information:
+            Name: {character.name}
+            Age: {character.age}
+            Personality: {character.personality}
+            Appearance: {character.appearance}
+            Backstory: {character.backstory}
+            """
+
+            # 构建提示词
+            prompt = f"""
+            Create a children's story based on the following character:
+            
+            {character_description}
+            
+            Please follow these guidelines in order:
+
+            1. Character Features (Must be consistent throughout the story):
+               - Maintain the character's appearance, personality, and traits
+               - Keep the character's age-appropriate behavior
+               - Ensure the character's actions align with their personality
+               - Preserve the character's unique characteristics in each scene
+
+            2. Scene Development (Create 3-5 engaging scenes):
+               - Each scene should showcase the character's personality
+               - Include clear visual descriptions for image generation
+               - Create a logical progression from beginning to end
+               - Ensure each scene builds upon the previous one
+               - Include meaningful character interactions and development
+
+            3. Story Requirements:
+               - Clear and appropriate theme for children
+               - Age-appropriate content and language
+               - Engaging and educational value
+               - Meaningful moral lesson
+               - Proper story structure (beginning, middle, end)
+
+            Please return the story in JSON format as follows:
+            {{
+                "title": "Story title",
+                "theme": "The main theme of the story (e.g., friendship, courage, kindness)",
+                "target_age_range": "The target age range for the story (e.g., 4-8, 6-10)",
+                "scenes": [
+                    {{
+                        "title": "Scene 1 title",
+                        "description": "Detailed description of scene 1",
+                        "image_prompt": "Detailed prompt for generating an image of scene 1"
+                    }},
+                    {{
+                        "title": "Scene 2 title",
+                        "description": "Detailed description of scene 2",
+                        "image_prompt": "Detailed prompt for generating an image of scene 2"
+                    }},
+                    {{
+                        "title": "Scene 3 title",
+                        "description": "Detailed description of scene 3",
+                        "image_prompt": "Detailed prompt for generating an image of scene 3"
+                    }}
+                ],
+                "moral": "The moral of the story"
+            }}
+            
+            Important:
+            1. All text must be in English only.
+            2. Each scene must include an image_prompt that describes how the scene should look visually.
+            3. Make sure to return valid JSON format with proper quotes and commas.
+            4. Do not include any explanatory text outside the JSON structure.
+            """
+
+            # 检查 LM Studio 服务是否可用
+            if not self._check_api_availability():
+                logger.error("无法连接到 LM Studio 服务，请确保服务已启动")
+                return None
+
+            # 生成故事
+            result = self._make_api_request(prompt)
+            if not result:
+                logger.error("多次尝试后仍无法生成故事")
+                return None
+
+            story_text = result['choices'][0]['message']['content']
+
+            # 尝试从文本中提取JSON
+            try:
+                # 使用正则表达式提取JSON部分
+                json_match = re.search(r'\{[\s\S]*\}', story_text)
+                if json_match:
+                    story_data = json.loads(json_match.group())
+                    
+                    # 验证必要的字段
+                    if not all(key in story_data for key in ['title', 'theme', 'scenes', 'moral', 'target_age_range']):
+                        logger.error("故事数据缺少必要字段")
+                        return None
+                    
+                    # 验证场景数据
+                    if not isinstance(story_data['scenes'], list) or not story_data['scenes']:
+                        logger.error("场景数据格式不正确")
+                        return None
+                    
+                    # 验证每个场景的必要字段
+                    for scene in story_data['scenes']:
+                        if not all(key in scene for key in ['title', 'description', 'image_prompt']):
+                            logger.error("场景数据缺少必要字段")
+                            return None
+                    
+                    story = Story(
+                        title=story_data['title'],
+                        character=character,
+                        theme=story_data['theme'],
+                        target_age_range=story_data['target_age_range'],
+                        scenes=[
+                            Scene(
+                                title=scene['title'],
+                                description=scene['description'],
+                                image_prompt=scene['image_prompt']
+                            )
+                            for scene in story_data['scenes']
+                        ],
+                        moral=story_data['moral']
+                    )
+                    logger.info(f"故事生成成功：{story.title}")
+                    return story
+                else:
+                    logger.error("无法从响应中提取JSON数据")
+                    logger.debug(f"原始响应：{story_text}")
+                    return None
+            except json.JSONDecodeError as e:
+                logger.error(f"解析故事JSON失败: {str(e)}")
+                logger.debug(f"原始响应：{story_text}")
+                return None
+
+        except Exception as e:
+            logger.error(f"故事生成过程中发生错误: {str(e)}")
+            return None

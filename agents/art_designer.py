@@ -24,8 +24,8 @@ class ArtDesigner:
                 'image_prompt': scene.image_prompt
             }
             
-            # 获取正向和负向提示词
-            full_prompt = self.prompt_engineer.generate_scene_prompt(scene_elements)
+            # 获取正向和负向提示词，传入角色信息
+            full_prompt = self.prompt_engineer.generate_scene_prompt(scene_elements, character)
             negative_prompt = self.prompt_engineer.generate_negative_prompt()
             
             # 生成图片
@@ -49,8 +49,8 @@ class ArtDesigner:
             with open(output_path, "wb") as f:
                 f.write(requests.get(f"{self.sd_service.api_url}/view?filename={image_path}").content)
             
-            return f"/static/images/{os.path.basename(output_path)}"
+            return output_path
             
         except Exception as e:
-            print(f"Error occurred while generating scene image: {str(e)}")
+            print(f"Error generating scene image: {str(e)}")
             return None 

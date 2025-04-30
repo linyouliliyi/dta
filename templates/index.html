@@ -117,11 +117,51 @@
 
         <div class="max-w-2xl mx-auto card p-8">
             <form id="storyForm" class="space-y-6">
+                <div class="mb-6">
+                    <label class="block text-lg font-medium text-gray-700 mb-2">Character Selection</label>
+                    <div class="flex space-x-4 mb-4">
+                        <button type="button" id="randomCharacterBtn" class="btn-primary flex-1">
+                            Use Polyu-Storyworld Characters
+                        </button>
+                        <button type="button" id="customCharacterBtn" class="btn-primary flex-1">
+                            Create Custom Character
+                        </button>
+                    </div>
+                </div>
+
+                <div id="customCharacterForm" class="hidden space-y-4">
+                    <div>
+                        <label for="characterName" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" id="characterName" name="characterName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lime-500 focus:ring-lime-500">
+                    </div>
+                    <div>
+                        <label for="characterAge" class="block text-sm font-medium text-gray-700">Age</label>
+                        <input type="number" id="characterAge" name="characterAge" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lime-500 focus:ring-lime-500">
+                    </div>
+                    <div>
+                        <label for="characterAppearance" class="block text-sm font-medium text-gray-700">Appearance</label>
+                        <textarea id="characterAppearance" name="characterAppearance" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lime-500 focus:ring-lime-500"></textarea>
+                    </div>
+                    <div>
+                        <label for="characterPersonality" class="block text-sm font-medium text-gray-700">Personality</label>
+                        <textarea id="characterPersonality" name="characterPersonality" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lime-500 focus:ring-lime-500"></textarea>
+                    </div>
+                    <div>
+                        <label for="characterBackstory" class="block text-sm font-medium text-gray-700">Backstory</label>
+                        <textarea id="characterBackstory" name="characterBackstory" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lime-500 focus:ring-lime-500"></textarea>
+                    </div>
+                </div>
+
+                <div id="selectedCharacter" class="hidden p-4 bg-lime-50 rounded-lg">
+                    <h3 class="text-lg font-medium text-lime-800 mb-2">Selected Character</h3>
+                    <div id="selectedCharacterInfo" class="text-sm"></div>
+                </div>
+
                 <div>
-                    <label for="description" class="block text-lg font-medium text-gray-700 mb-2">Character Description</label>
+                    <label for="description" class="block text-lg font-medium text-gray-700 mb-2">Story Theme (Optional)</label>
                     <textarea id="description" name="description" rows="4" 
                         class="w-full rounded-xl border-2 border-gray-200 p-4 focus:border-lime-500 focus:ring-2 focus:ring-lime-200"
-                        placeholder="For example: I want to create a little cat who loves adventures, with blue fur and big eyes, cheerful and helpful personality."></textarea>
+                        placeholder="Describe the type of story you want (e.g., adventure, friendship, learning). Leave empty for a random theme."></textarea>
                 </div>
                 <button type="submit" class="btn-primary w-full">
                     Generate Story
@@ -149,7 +189,7 @@
                 </div>
             </div>
             <div class="loading-spinner mx-auto"></div>
-            <p id="loadingText" class="mt-4 text-xl text-gray-600">Generating your story...</p>
+            <p id="status" class="mt-4 text-xl text-gray-600">Initializing...</p>
         </div>
 
         <div id="result" class="mt-12 hidden">
@@ -169,19 +209,15 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Appearance</p>
-                            <div id="characterAppearance" class="font-medium">
-                                <p class="text-sm">Physical Traits: <span id="physicalTraits"></span></p>
-                                <p class="text-sm">Clothing: <span id="clothing"></span></p>
-                                <p class="text-sm">Distinctive Features: <span id="distinctiveFeatures"></span></p>
-                            </div>
+                            <p id="characterAppearance" class="text-lg font-medium"></p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Personality</p>
-                            <div id="characterPersonality" class="font-medium">
-                                <p class="text-sm">Traits: <span id="personalityTraits"></span></p>
-                                <p class="text-sm">Strengths: <span id="strengths"></span></p>
-                                <p class="text-sm">Weaknesses: <span id="weaknesses"></span></p>
-                            </div>
+                            <p id="characterPersonality" class="text-lg font-medium"></p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-sm text-gray-600">Backstory</p>
+                            <p id="characterBackstory" class="text-lg font-medium"></p>
                         </div>
                     </div>
                 </div>
@@ -199,22 +235,106 @@
     </div>
 
     <script>
+        let selectedCharacter = null;
+
+        document.getElementById('randomCharacterBtn').addEventListener('click', async () => {
+            try {
+                console.log('Fetching random character...');
+                const response = await fetch('/characters/random');
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Random character data:', data);
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to get random character');
+                }
+
+                if (!data.character || typeof data.character !== 'object') {
+                    throw new Error('Invalid character data received');
+                }
+
+                // Validate required fields
+                const requiredFields = ['name', 'age', 'appearance', 'personality', 'backstory'];
+                const missingFields = requiredFields.filter(field => !data.character[field]);
+                if (missingFields.length > 0) {
+                    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+                }
+
+                selectedCharacter = data.character;
+                displaySelectedCharacter(data.character, data.source_file);
+                document.getElementById('customCharacterForm').classList.add('hidden');
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to get random character');
+            }
+        });
+
+        document.getElementById('customCharacterBtn').addEventListener('click', () => {
+            document.getElementById('customCharacterForm').classList.remove('hidden');
+            document.getElementById('selectedCharacter').classList.add('hidden');
+            selectedCharacter = null;
+        });
+
+        function displaySelectedCharacter(character, sourceFile) {
+            console.log('Displaying character:', character);
+            if (!character || typeof character !== 'object') {
+                console.error('Invalid character data:', character);
+                return;
+            }
+
+            const info = document.getElementById('selectedCharacterInfo');
+            info.innerHTML = `
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600">Name</p>
+                        <p class="text-lg font-medium">${character.name || '(No name)'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Age</p>
+                        <p class="text-lg font-medium">${character.age || '(No age)'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Appearance</p>
+                        <p class="text-lg font-medium">${character.appearance || '(No appearance)'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Personality</p>
+                        <p class="text-lg font-medium">${character.personality || '(No personality)'}</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-sm text-gray-600">Backstory</p>
+                        <p class="text-lg font-medium">${character.backstory || '(No backstory)'}</p>
+                    </div>
+                    ${sourceFile ? `
+                    <div class="col-span-2 mt-4">
+                        <p class="text-xs text-gray-500 italic">Character from: ${sourceFile}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('selectedCharacter').classList.remove('hidden');
+        }
+
         document.getElementById('storyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            let characterData = null;
+            if (selectedCharacter) {
+                characterData = selectedCharacter;
+            } else if (!document.getElementById('customCharacterForm').classList.contains('hidden')) {
+                characterData = {
+                    name: document.getElementById('characterName').value,
+                    age: parseInt(document.getElementById('characterAge').value),
+                    appearance: document.getElementById('characterAppearance').value,
+                    personality: document.getElementById('characterPersonality').value,
+                    backstory: document.getElementById('characterBackstory').value
+                };
+            }
+
             const description = document.getElementById('description').value;
-            const loading = document.getElementById('loading');
-            const result = document.getElementById('result');
-            const loadingText = document.getElementById('loadingText');
             
-            // Reset progress steps
-            document.querySelectorAll('.progress-step').forEach(step => {
-                step.classList.remove('active', 'completed');
-            });
-            
-            // Show loading state
-            loading.classList.add('active');
-            result.classList.add('hidden');
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('result').classList.add('hidden');
             
             try {
                 const response = await fetch('/generate', {
@@ -222,112 +342,167 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ description }),
+                    body: JSON.stringify({
+                        description: description,
+                        character: characterData
+                    })
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Server response error');
-                }
-                
+
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let buffer = '';
-                
+
                 while (true) {
                     const { value, done } = await reader.read();
                     if (done) break;
                     
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    
-                    for (const line of lines) {
-                        if (!line.trim()) continue;
-                        
-                        const data = JSON.parse(line);
-                        
+                    const events = decoder.decode(value).split('\n').filter(Boolean);
+                    for (const event of events) {
+                        const data = JSON.parse(event);
                         if (data.error) {
                             throw new Error(data.error);
                         }
-                        
-                        switch (data.status) {
-                            case 'generating_character':
-                                document.getElementById('step1').classList.add('active');
-                                loadingText.textContent = 'Creating your character...';
-                                break;
-                            case 'character_completed':
-                                document.getElementById('step1').classList.remove('active');
-                                document.getElementById('step1').classList.add('completed');
-                                document.getElementById('step2').classList.add('active');
-                                loadingText.textContent = 'Generating your story...';
-                                break;
-                            case 'generating_story':
-                                loadingText.textContent = 'Generating your story...';
-                                break;
-                            case 'story_completed':
-                                document.getElementById('step2').classList.remove('active');
-                                document.getElementById('step2').classList.add('completed');
-                                document.getElementById('step3').classList.add('active');
-                                loadingText.textContent = 'Creating story images...';
-                                break;
-                            case 'generating_image':
-                                loadingText.textContent = `Creating images (${data.scene}/${data.total})...`;
-                                break;
-                            case 'images_completed':
-                                document.getElementById('step3').classList.remove('active');
-                                document.getElementById('step3').classList.add('completed');
-                                document.getElementById('step4').classList.add('active');
-                                loadingText.textContent = 'Making your storybook...';
-                                break;
-                            case 'completed':
-                                document.getElementById('step4').classList.remove('active');
-                                document.getElementById('step4').classList.add('completed');
-                                // Update character information
-                                document.getElementById('characterName').textContent = data.character.name;
-                                document.getElementById('characterAge').textContent = data.character.age;
-                                
-                                // Update appearance information
-                                document.getElementById('physicalTraits').textContent = data.character.appearance.physical_traits.join(', ');
-                                document.getElementById('clothing').textContent = data.character.appearance.clothing.join(', ');
-                                document.getElementById('distinctiveFeatures').textContent = data.character.appearance.distinctive_features.join(', ');
-                                
-                                // Update personality information
-                                document.getElementById('personalityTraits').textContent = data.character.personality.traits.join(', ');
-                                document.getElementById('strengths').textContent = data.character.personality.strengths.join(', ');
-                                document.getElementById('weaknesses').textContent = data.character.personality.weaknesses.join(', ');
-                                
-                                // Update story title
-                                document.getElementById('storyTitle').textContent = data.story.title;
-                                
-                                // Update scenes
-                                const scenesContainer = document.getElementById('scenes');
-                                scenesContainer.innerHTML = '';
-                                data.story.scenes.forEach((scene, index) => {
-                                    const sceneElement = document.createElement('div');
-                                    sceneElement.className = 'scene bg-lime-50 p-6 rounded-xl shadow-sm';
-                                    sceneElement.innerHTML = `
-                                        <h3 class="text-xl font-semibold text-lime-800 mb-4">Scene ${index + 1}</h3>
-                                        <img src="${scene.image_path}" alt="Scene ${index + 1}" class="w-full rounded-lg mb-4">
-                                        <p class="text-gray-700">${scene.description}</p>
-                                    `;
-                                    scenesContainer.appendChild(sceneElement);
-                                });
-                                
-                                // Update moral
-                                document.getElementById('moralText').textContent = data.story.moral;
-                                
-                                // Show result
-                                result.classList.remove('hidden');
-                                loading.classList.remove('active');
-                                break;
-                        }
+                        handleStreamUpdate(data);
                     }
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
-                loading.classList.remove('active');
+                console.error('Error:', error);
+                const errorMessage = error.message || 'Failed to generate story';
+                alert(errorMessage);
+                document.getElementById('loading').classList.remove('active');
             }
         });
+
+        function handleStreamUpdate(data) {
+            const loadingElement = document.getElementById('loading');
+            const resultElement = document.getElementById('result');
+            const statusElement = document.getElementById('status');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            const step4 = document.getElementById('step4');
+
+            if (data.status) {
+                switch (data.status) {
+                    case 'generating_character':
+                        statusElement.textContent = 'Creating your character...';
+                        step1.classList.add('active');
+                        break;
+                    case 'character_completed':
+                        statusElement.textContent = 'Character created successfully!';
+                        step1.classList.remove('active');
+                        step1.classList.add('completed');
+                        step2.classList.add('active');
+                        break;
+                    case 'generating_story':
+                        statusElement.textContent = 'Writing your story...';
+                        step2.classList.add('active');
+                        break;
+                    case 'story_completed':
+                        statusElement.textContent = 'Story written successfully!';
+                        step2.classList.remove('active');
+                        step2.classList.add('completed');
+                        step3.classList.add('active');
+                        break;
+                    case 'generating_image':
+                        statusElement.textContent = `Creating illustration ${data.scene} of ${data.total}...`;
+                        step3.classList.add('active');
+                        break;
+                    case 'images_completed':
+                        statusElement.textContent = 'All illustrations completed!';
+                        step3.classList.remove('active');
+                        step3.classList.add('completed');
+                        step4.classList.add('active');
+                        break;
+                    case 'completed':
+                        statusElement.textContent = 'Your storybook is ready!';
+                        step4.classList.remove('active');
+                        step4.classList.add('completed');
+                        loadingElement.classList.remove('active');
+                        resultElement.classList.remove('hidden');
+                        displayResult(data);
+                        break;
+                }
+            }
+        }
+
+        function displayResult(data) {
+            console.log('Displaying result data:', data);  // Debug log
+            if (!data || !data.character || !data.story) {
+                console.error('Invalid result data:', data);
+                return;
+            }
+
+            try {
+                // Display character information
+                const character = data.character;
+                console.log('Character data to display:', character);  // Debug log
+                
+                // Update character information display
+                const characterInfo = document.getElementById('characterInfo');
+                characterInfo.innerHTML = `
+                    <h3 class="text-xl font-semibold text-lime-800 mb-4">Character Information</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm text-gray-600">Name</p>
+                            <p class="text-lg font-medium">${character.name || '(No name)'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Age</p>
+                            <p class="text-lg font-medium">${character.age || '(No age)'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Appearance</p>
+                            <p class="text-lg font-medium">${character.appearance || '(No appearance)'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Personality</p>
+                            <p class="text-lg font-medium">${character.personality || '(No personality)'}</p>
+                        </div>
+                        <div class="col-span-2">
+                            <p class="text-sm text-gray-600">Backstory</p>
+                            <p class="text-lg font-medium">${character.backstory || '(No backstory)'}</p>
+                        </div>
+                    </div>
+                `;
+
+                // Display story title
+                document.getElementById('storyTitle').textContent = data.story.title || 'Untitled Story';
+
+                // Display scenes
+                const scenesContainer = document.getElementById('scenes');
+                scenesContainer.innerHTML = '';
+                if (data.story.scenes && Array.isArray(data.story.scenes)) {
+                    data.story.scenes.forEach((scene, index) => {
+                        const sceneElement = document.createElement('div');
+                        sceneElement.className = 'mb-8 p-6 bg-white rounded-xl shadow-lg';
+                        sceneElement.innerHTML = `
+                            <h3 class="text-xl font-semibold text-lime-600 mb-4">${scene.title || `Scene ${index + 1}`}</h3>
+                            <p class="text-gray-700 mb-4">${scene.description || ''}</p>
+                            ${scene.image_path ? `<img src="${scene.image_path}" alt="${scene.title || `Scene ${index + 1}`}" class="w-full rounded-lg">` : ''}
+                        `;
+                        scenesContainer.appendChild(sceneElement);
+                    });
+                }
+
+                // Display moral
+                const moralElement = document.getElementById('moralText');
+                if (moralElement) {
+                    moralElement.textContent = data.story.moral || '';
+                }
+
+                // Show download button if it exists
+                const downloadButton = document.getElementById('downloadButton');
+                if (downloadButton && data.book_path) {
+                    downloadButton.href = data.book_path;
+                    downloadButton.classList.remove('hidden');
+                }
+
+                document.getElementById('characterName').textContent = character.name || '';
+            } catch (error) {
+                console.error('Error displaying result:', error);
+                alert('An error occurred while displaying the story. Please try again.');
+            }
+        }
     </script>
 </body>
 </html> 

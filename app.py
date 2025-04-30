@@ -3,14 +3,21 @@ from agents.character_designer import CharacterDesigner
 from agents.story_creator import StoryCreator
 from agents.art_designer import ArtDesigner
 from agents.book_maker import BookMaker
+from services.character_service import CharacterService
 import os
 import traceback
 import logging
 import json
 
 # 配置日志
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# 设置 Werkzeug 日志级别为 WARNING，减少不必要的输出
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 app = Flask(__name__, static_url_path='/static')
 app.config['UPLOAD_FOLDER'] = 'static/images'
@@ -18,7 +25,10 @@ app.config['UPLOAD_FOLDER'] = 'static/images'
 # 确保上传目录存在
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# 初始化代理
+# 初始化服务和代理
+character_service = CharacterService()
+logger.info("Loading characters...")
+character_service.load_characters()
 character_designer = CharacterDesigner()
 story_creator = StoryCreator()
 art_designer = ArtDesigner("http://localhost:8188")
@@ -32,12 +42,49 @@ def index():
 def serve_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-def generate_story_stream(user_input):
+@app.route('/characters/random', methods=['GET'])
+def get_random_character():
+    logger.debug("Getting random character...")
+    character, source_file = character_service.get_random_character()
+    logger.debug(f"Random character data: {character}, from file: {source_file}")
+    if character:
+        return jsonify({
+            "character": character,
+            "source_file": source_file
+        })
+    return jsonify({"error": "No characters available"}), 404
+
+@app.route('/characters', methods=['POST'])
+def create_character():
+    character_data = request.json
+    if not character_data:
+        return jsonify({"error": "No character data provided"}), 400
+    
     try:
-        # Generate character
+        character_id = character_service.create_character(character_data)
+        return jsonify({"id": character_id, "character": character_data})
+    except Exception as e:
+        logger.error(f"Error creating character: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/characters/<character_id>', methods=['GET'])
+def get_character(character_id):
+    character = character_service.get_character(character_id)
+    if character:
+        return jsonify(character)
+    return jsonify({"error": "Character not found"}), 404
+
+def generate_story_stream(user_input, character_data=None):
+    try:
+        # Generate or use provided character
         logger.debug("Starting character generation...")
         yield json.dumps({"status": "generating_character"}) + "\n"
-        character = character_designer.create_character(user_input)
+        
+        if character_data:
+            character = character_designer.create_character_from_data(character_data)
+        else:
+            character = character_designer.create_character(user_input)
+            
         if not character:
             logger.error("Character generation failed")
             yield json.dumps({"error": "Character generation failed"}) + "\n"
@@ -86,9 +133,9 @@ def generate_story_stream(user_input):
             "character": {
                 'name': character.name,
                 'age': character.age,
-                'appearance': character.appearance,
                 'personality': character.personality,
-                'background': character.background
+                'appearance': character.appearance,
+                'backstory': character.backstory
             },
             'story': {
                 'title': story.title,
@@ -110,8 +157,27 @@ def generate_story_stream(user_input):
 @app.route('/generate', methods=['POST'])
 def generate_story():
     user_input = request.json.get('description', '')
+    character_data = request.json.get('character', None)
     logger.debug(f"收到用户输入: {user_input}")
-    return Response(generate_story_stream(user_input), mimetype='text/event-stream')
+    logger.debug(f"收到角色数据: {character_data}")
+    return Response(generate_story_stream(user_input, character_data), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    # Enable Windows color support
+    import os
+    os.system('')  # This enables ANSI escape sequences in Windows
+
+    # ANSI escape codes for colors
+    GREEN = '\033[92m'
+    BLUE = '\033[94m'
+    YELLOW = '\033[93m'
+    BOLD = '\033[1m'
+    END = '\033[0m'
+
+    print(f"\n{YELLOW}{'='*50}{END}")
+    print(f"{GREEN}{BOLD}Children's Story Generator Server{END}")
+    print(f"{YELLOW}{'='*50}{END}")
+    print(f"\n{BOLD}Server is running at: {END}{BLUE}http://localhost:5000{END}")
+    print(f"{YELLOW}Press Ctrl+C to stop the server{END}")
+    print(f"{YELLOW}{'='*50}{END}\n")
+    app.run(debug=True, port=5000) 
